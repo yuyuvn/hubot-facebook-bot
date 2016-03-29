@@ -12,7 +12,7 @@
     "orchestrate-brain": "0.0.5",
     "hubot-facebook": "yuyuvn/hubot-facebook",
     "coffee-script": "1.10.0",
-    "hubot-relay": "0.1.2",
+    "hubot-relay": "yuyuvn/hubot-relay",
     "iconv-lite": "0.4.13"
   },
 

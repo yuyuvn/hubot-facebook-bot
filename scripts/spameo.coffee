@@ -30,5 +30,6 @@ module.exports = (robot) ->
 
   robot.router.get "/hubot/facebook/stickers", (req, res) ->
     stickers = robot.brain.get("stickers") || {}
-    data = JSON.stringify({stickers: stickers})
+    data = JSON.stringify {stickers: stickers}
+    res.setHeader 'content-type', 'application/json'
     res.send data
