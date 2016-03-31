@@ -46,7 +46,8 @@ class CachedData
     @robot.brain.data[@key] = @cached
 
   clean: ->
-      @cached = @robot.brain.data[@key] = {}
+    @cached = {}
+    @robot.brain.data[@key] = @cached
 
 
 class Stickers
@@ -77,7 +78,7 @@ module.exports = (robot) ->
 
   robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) ([0-9]+)/i, (msg) ->
     msg.sendSticker msg.match[2] if msg.sendSticker
-    states.clean msg.message.room
+    robot.emit "reset_state", msg
 
   robot.respond /ngừng spam(.*)/i, (msg) ->
     match = msg.match[1].match /^\s(con|em|mèo|moè|sticker|bé|thằng) này/i
@@ -85,7 +86,7 @@ module.exports = (robot) ->
       states.set "remove", msg.message.room
     else
       msg.sendSticker if stickers.unsubscribe_all() then "144885159019084" else "144884895685777"
-      states.clean msg.message.room
+      robot.emit "reset_state", msg
 
   robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) này/i, (msg) ->
     states.set "add", msg.message.room
@@ -103,11 +104,13 @@ module.exports = (robot) ->
             msg.send "Từ giờ em sẽ spam #{sticker_id} :3"
           else
             msg.send "Em spam #{sticker_id} lâu rồi mà -_-"
+          robot.emit "reset_state", msg
         when "remove"
           if stickers.unsubscribe sticker_id, sticker_url
             msg.send "Từ giờ em sẽ ngừng spam #{sticker_id} ạ :'("
           else
             msg.send "Em đã bao giờ spam #{sticker_id} đâu :/"
+          robot.emit "reset_state", msg
         when "spam"
           spam = sticker_id isnt state_data.id and stickers.subscribing(sticker_id)
     else
@@ -119,9 +122,7 @@ module.exports = (robot) ->
         msg.sendSticker sticker_id
         states.set state: "spam", id: sticker_id, msg.message.room
       else if rand <= 90
-        robot.emit "send_random_sticker", msg: msg
-    else
-      robot.emit "reset_state", msg
+        robot.emit "send_random_sticker", msg
 
   robot.router.get "/hubot/facebook/stickers", (req, res) ->
     res.setHeader 'content-type', 'application/json'
@@ -131,8 +132,9 @@ module.exports = (robot) ->
     states.clean msg.message.room
 
   robot.on "send_random_sticker", (msg) ->
-    return if stickers.data.cached.length <= 0
-    sticker_id = data.msg.random stickers.data.cached.keys
+    sticker_ids = Object.keys(stickers.data.cached)
+    return if sticker_ids.length < 1
+    sticker_id = msg.random sticker_ids
     msg.sendSticker sticker_id
 
   robot.catchAll (msg) ->
@@ -140,4 +142,4 @@ module.exports = (robot) ->
       robot.emit "reset_state", msg
     else
       rand = Math.random()*100
-      robot.emit "send_random_sticker", msg: msg if rand <= 5
+      robot.emit "send_random_sticker", msg if rand <= 5
