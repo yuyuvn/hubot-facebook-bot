@@ -12,83 +12,92 @@
 
 HubotFacebook = require 'hubot-facebook'
 
-class Stickers
-  constructor: (@robot) ->
+class CachedData
+  constructor: (@robot, @key) ->
     @cached = {}
     @robot.brain.on 'loaded', =>
-      if @robot.brain.data.stickers
-        @cached = @robot.brain.data.stickers
+      if @robot.brain.data[@key]?
+        @cached = @robot.brain.data[@key]
       else
-        @robot.brain.data.stickers = {}
+        @robot.brain.data[@key] = @cached
+
+  get: (paths...) ->
+    data = @cached
+    for path in paths
+      return null if not data[path]?
+      data = data[path]
+    data
+
+  set: (value, paths...) ->
+    parent_data = @cached
+    last_path = paths.splice(-1,1)
+    for path in paths
+      parent_data[path] = {} if not parent_data[path]?
+      parent_data = parent_data[path]
+    parent_data[last_path] = value
+    @robot.brain.data[@key] = @cached
+
+  remove: (paths...) ->
+    parent_data = @cached
+    last_path = paths.splice(-1,1)
+    for path in paths
+      return if not parent_data[path]?
+    delete parent_data[last_path]
+    @robot.brain.data[@key] = @cached
+
+  clean: ->
+      @cached = @robot.brain.data[@key] = {}
+
+
+class Stickers
+  constructor: (robot) ->
+    @data = new CachedData robot, "stickers"
 
   subscribe: (sticker_id, sticker_url) ->
     return false if @subscribing(sticker_id)
-    @cached[sticker_id] = sticker_url
-    @robot.brain.data.stickers = @cached
+    @data.set sticker_url, sticker_id
 
   unsubscribe: (sticker_id) ->
     return false if not @subscribing(sticker_id)
-    delete @cached[sticker_id]
-    @robot.brain.data.stickers = @cached
+    @data.remove sticker_id
 
   unsubscribe_all: ->
-    return false if Object.keys(@cached).length < 1
-    @cached = {}
-    @robot.brain.data.stickers = @cached
+    return false if Object.keys(@data.cached).length < 1
+    @data.clean
 
   subscribing: (sticker_id) ->
-    @cached[sticker_id]?
-
-class StatesCollection
-  constructor: (@robot) ->
-    @cached = {}
-    @robot.brain.on 'loaded', =>
-      if @robot.brain.data.meo_states
-        @cached = @robot.brain.data.meo_states
-      else
-        @robot.brain.data.meo_states = {}
-
-  get_state: (msg) ->
-    room = msg.message.room
-    @cached[room]
-
-  set_state: (state) ->
-    room = state.room
-    @cached[room] = state
-    @robot.brain.data.meo_states = @cached
-
-  reset_state: (msg) ->
-    room = msg.message.room
-    if @cached[room]?
-      delete @cached[room]
-      @robot.brain.data.meo_states = @cached
+    @data.get(sticker_id)?
 
 module.exports = (robot) ->
-  states = new StatesCollection robot
+  states = new CachedData robot, "ria_states"
   stickers = new Stickers robot
+
+  robot.respondSticker = (regex, callback) ->
+    robot.listeners.push new HubotFacebook.StickerListener robot, regex, callback
 
   robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) ([0-9]+)/i, (msg) ->
     msg.sendSticker msg.match[2] if msg.sendSticker
-    states.reset_state msg
+    states.clean msg.message.room
 
   robot.respond /ngừng spam(.*)/i, (msg) ->
     match = msg.match[1].match /^\s(con|em|mèo|moè|sticker|bé|thằng) này/i
     if match?
-      states.set_state room: msg.message.room, state: "remove"
+      states.set "remove", msg.message.room
     else
       msg.sendSticker if stickers.unsubscribe_all() then "144885159019084" else "144884895685777"
-      states.reset_state msg
+      states.clean msg.message.room
 
   robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) này/i, (msg) ->
-    states.set_state room: msg.message.room, state: "add"
+    states.set "add", msg.message.room
 
-  robot.listeners.push new HubotFacebook.StickerListener robot, /^.+$/, (msg) ->
+  robot.respondSticker /^.+$/, (msg) ->
     sticker_id = msg.match[0]
     sticker_url = msg.message.text
 
-    state = states.get_state msg
-    if state?
-      switch state.state
+    state_data = states.get msg.message.room
+    if state_data?
+      state = state_data.state? or state_data
+      switch state
         when "add"
           if stickers.subscribe sticker_id, sticker_url
             msg.send "Từ giờ em sẽ spam #{sticker_id} :3"
@@ -100,15 +109,35 @@ module.exports = (robot) ->
           else
             msg.send "Em đã bao giờ spam #{sticker_id} đâu :/"
         when "spam"
-          msg.sendSticker sticker_id if sticker_id isnt state.id and stickers.subscribing(sticker_id)
+          spam = sticker_id isnt state_data.id and stickers.subscribing(sticker_id)
     else
-      msg.sendSticker sticker_id if stickers.subscribing(sticker_id)
-    states.set_state room: msg.message.room, state: "spam", id: sticker_id
+      spam = stickers.subscribing(sticker_id)
 
+    if spam
+      rand = Math.random()*100
+      if rand <= 70
+        msg.sendSticker sticker_id
+        states.set state: "spam", id: sticker_id, msg.message.room
+      else if rand <= 90
+        robot.emit "send_random_sticker", msg: msg
+    else
+      robot.emit "reset_state", msg
 
   robot.router.get "/hubot/facebook/stickers", (req, res) ->
     res.setHeader 'content-type', 'application/json'
-    res.send stickers.cached
+    res.send stickers.data.cached
+
+  robot.on "reset_state", (msg) ->
+    states.clean msg.message.room
+
+  robot.on "send_random_sticker", (msg) ->
+    return if stickers.data.cached.length <= 0
+    sticker_id = data.msg.random stickers.data.cached.keys
+    msg.sendSticker sticker_id
 
   robot.catchAll (msg) ->
-    states.reset_state msg
+    if states.get(msg.message.room)?
+      robot.emit "reset_state", msg
+    else
+      rand = Math.random()*100
+      robot.emit "send_random_sticker", msg: msg if rand <= 5
