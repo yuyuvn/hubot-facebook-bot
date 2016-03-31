@@ -94,10 +94,11 @@ module.exports = (robot) ->
   robot.respondSticker /^.+$/, (msg) ->
     sticker_id = msg.match[0]
     sticker_url = msg.message.text
+    rate = 40
 
     state_data = states.get msg.message.room
     if state_data?
-      state = state_data.state? or state_data
+      state = state_data.state or state_data
       switch state
         when "add"
           if stickers.subscribe sticker_id, sticker_url
@@ -112,17 +113,26 @@ module.exports = (robot) ->
             msg.send "Em đã bao giờ spam #{sticker_id} đâu :/"
           robot.emit "reset_state", msg
         when "spam"
-          spam = sticker_id isnt state_data.id and stickers.subscribing(sticker_id)
+          spamed = sticker_id is state_data.id
+          spam = not spamed and stickers.subscribing sticker_id
+        when "chain"
+          rate += 10*state_data.times if sticker_id is state_data.id
+          spam = stickers.subscribing sticker_id
     else
-      spam = stickers.subscribing(sticker_id)
+      spam = stickers.subscribing sticker_id
 
     if spam
       rand = Math.random()*100
-      if rand <= 70
+      if rand <= rate
         msg.sendSticker sticker_id
         states.set state: "spam", id: sticker_id, msg.message.room
-      else if rand <= 90
+      else if rand <= (rate*1.25)
         robot.emit "send_random_sticker", msg
+      else
+        spam = false
+    if not spam and not spamed
+      times = (state_data?.times || 0) + 1
+      states.set state: "chain", id: sticker_id, times: times, msg.message.room
 
   robot.router.get "/hubot/facebook/stickers", (req, res) ->
     res.setHeader 'content-type', 'application/json'
