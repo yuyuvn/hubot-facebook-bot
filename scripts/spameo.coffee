@@ -135,6 +135,7 @@ module.exports = (robot) ->
     sticker_ids = Object.keys(stickers.data.cached)
     return if sticker_ids.length < 1
     sticker_id = msg.random sticker_ids
+    states.set state: "spam", id: sticker_id, msg.message.room
     msg.sendSticker sticker_id
 
   robot.catchAll (msg) ->
