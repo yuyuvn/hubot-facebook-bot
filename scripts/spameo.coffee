@@ -11,6 +11,7 @@
 #   clicia scarlet <yuyuvn@icloud.com>
 
 HubotFacebook = require 'hubot-facebook'
+{TextMessage} = require 'hubot'
 
 class CachedData
   constructor: (@robot, @key) ->
@@ -64,93 +65,122 @@ class Stickers
 
   unsubscribe_all: ->
     return false if Object.keys(@data.cached).length < 1
-    @data.clean
+    @data.clean()
 
   subscribing: (sticker_id) ->
     @data.get(sticker_id)?
 
 module.exports = (robot) ->
-  states = new CachedData robot, "ria_states"
+  room_states = new CachedData robot, "ria_room_states"
+  # user_states = new CachedData robot, "ria_user_states"
   stickers = new Stickers robot
+
+  emo =
+    sad: ["144885159019084"],
+    cry: ["144884895685777"]
+  vocabulary =
+    sticker: ["con","em","mèo","moè","sticker","bé","thằng","emo"],
+    stop: ["dừng","ngừng","ngưng"]
+  vocabulary_regex = {}
+  for key, value of vocabulary
+    vocabulary_regex[key] = "(#{value.join("|")})"
 
   robot.respondSticker = (regex, callback) ->
     robot.listeners.push new HubotFacebook.StickerListener robot, regex, callback
 
-  robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) ([0-9]+)/i, (msg) ->
+  robot.on "reset_state", (msg) ->
+    room_states.clean msg.message.room
+
+  robot.on "send_random_sticker", (msg) ->
+    sticker_ids = Object.keys(stickers.data.cached)
+    if sticker_ids.length < 1
+      robot.emit "reset_state", msg if room_states.get(msg.message.room)?
+
+    sticker_id = msg.random sticker_ids
+    room_states.set state: "spam", id: sticker_id, msg.message.room
+    msg.sendSticker sticker_id
+
+  robot.respond new RegExp("spam #{vocabulary_regex.sticker} ([0-9]+)", "i"), (msg) ->
     msg.sendSticker msg.match[2] if msg.sendSticker
     robot.emit "reset_state", msg
 
-  robot.respond /ngừng spam(.*)/i, (msg) ->
-    match = msg.match[1].match /^\s(con|em|mèo|moè|sticker|bé|thằng) này/i
+  robot.respond new RegExp("#{vocabulary_regex.stop} spam(.*)", "i"), (msg) ->
+    match = msg.match[2].match new RegExp "^\\s#{vocabulary_regex.sticker} này", "i"
     if match?
-      states.set "remove", msg.message.room
+      room_states.set state: "remove", msg.message.room
     else
-      msg.sendSticker if stickers.unsubscribe_all() then "144885159019084" else "144884895685777"
+      msg.sendSticker if stickers.unsubscribe_all() then msg.random(emo.sad) else msg.random(emo.cry)
       robot.emit "reset_state", msg
 
-  robot.respond /spam (con|em|mèo|moè|sticker|bé|thằng) này/i, (msg) ->
-    states.set "add", msg.message.room
-
-  robot.respondSticker /^.+$/, (msg) ->
-    sticker_id = msg.match[0]
-    sticker_url = msg.message.text
-    rate = 40
-
-    state_data = states.get msg.message.room
-    if state_data?
-      state = state_data.state or state_data
-      switch state
-        when "add"
-          if stickers.subscribe sticker_id, sticker_url
-            msg.send "Từ giờ em sẽ spam #{sticker_id} :3"
-          else
-            msg.send "Em spam #{sticker_id} lâu rồi mà -_-"
-          robot.emit "reset_state", msg
-        when "remove"
-          if stickers.unsubscribe sticker_id, sticker_url
-            msg.send "Từ giờ em sẽ ngừng spam #{sticker_id} ạ :'("
-          else
-            msg.send "Em đã bao giờ spam #{sticker_id} đâu :/"
-          robot.emit "reset_state", msg
-        when "spam"
-          spamed = sticker_id is state_data.id
-          spam = not spamed and stickers.subscribing sticker_id
-        when "chain"
-          rate += 10*state_data.times if sticker_id is state_data.id
-          spam = stickers.subscribing sticker_id
-    else
-      spam = stickers.subscribing sticker_id
-
-    if spam
-      rand = Math.random()*100
-      if rand <= rate
-        msg.sendSticker sticker_id
-        states.set state: "spam", id: sticker_id, msg.message.room
-      else if rand <= (rate*1.25)
-        robot.emit "send_random_sticker", msg
-      else
-        spam = false
-    if not spam and not spamed
-      times = (state_data?.times || 0) + 1
-      states.set state: "chain", id: sticker_id, times: times, msg.message.room
+  robot.respond new RegExp("spam #{vocabulary_regex.sticker} này", "i"), (msg) ->
+    room_states.set state: "add", msg.message.room
 
   robot.router.get "/hubot/facebook/stickers", (req, res) ->
     res.setHeader 'content-type', 'application/json'
     res.send stickers.data.cached
 
-  robot.on "reset_state", (msg) ->
-    states.clean msg.message.room
-
-  robot.on "send_random_sticker", (msg) ->
-    sticker_ids = Object.keys(stickers.data.cached)
-    return if sticker_ids.length < 1
-    sticker_id = msg.random sticker_ids
-    states.set state: "spam", id: sticker_id, msg.message.room
-    msg.sendSticker sticker_id
-
   robot.catchAll (msg) ->
-    if states.get(msg.message.room)?
-      robot.emit "reset_state", msg
-    else
+    state_data = room_states.get(msg.message.room) || {}
+    state = state_data.state || "default"
+    if msg.message.stickerID?
+      robot.emit "room_state_handler_sticker_#{state}", msg, state_data
+      robot.logger.debug "Trigger room_state_handler_sticker_#{state}"
+    else if msg.message.text?
+      robot.emit "room_state_handler_message_#{state}", msg, state_data
+      robot.logger.debug "Trigger room_state_handler_message_#{state}"
+
+  robot.on "room_state_handler_sticker_default", (msg, state) ->
+    unless stickers.subscribing msg.message.stickerID
+      robot.emit "room_state_handler_message_default", msg, state
+      return
+    rate = state.rate || 40
+    spammed = true
+    unless state?.no_spam
       rand = Math.random()*100
-      robot.emit "send_random_sticker", msg if rand <= 5
+      if rand <= rate
+        msg.sendSticker sticker_id
+        room_states.set state: "spam", id: sticker_id, msg.message.room
+      else if rand <= (rate*1.25)
+        robot.emit "send_random_sticker", msg
+      else
+        spammed = false
+    unless spammed
+      times = (state?.times || 0) + 1
+      room_states.set state: "chain", id: sticker_id, times: times, msg.message.room
+
+  robot.on "room_state_handler_sticker_add", (msg, state) ->
+    sticker_id = msg.message.stickerID
+    sticker_url = msg.message.text
+    if stickers.subscribe sticker_id, sticker_url
+      msg.send "Từ giờ em sẽ spam #{sticker_id} :3"
+    else
+      msg.send "Em spam #{sticker_id} lâu rồi mà -_-"
+    robot.emit "reset_state", msg
+
+  robot.on "room_state_handler_sticker_remove", (msg, state) ->
+    sticker_id = msg.message.stickerID
+    sticker_url = msg.message.text
+    if stickers.unsubscribe sticker_id, sticker_url
+      msg.send "Từ giờ em sẽ ngừng spam #{sticker_id} ạ :'("
+    else
+      msg.send "Em đã bao giờ spam #{sticker_id} đâu :/"
+    robot.emit "reset_state", msg
+
+  robot.on "room_state_handler_sticker_spam", (msg, state) ->
+    sticker_id = msg.message.stickerID
+    spammed = sticker_id is state.id
+    robot.emit "room_state_handler_sticker_default", msg, state unless spammed
+
+  robot.on "room_state_handler_sticker_chain", (msg, state) ->
+    sticker_id = msg.message.stickerID
+    state.rate = 0 if state.rate?
+    state.rate += 10*state.times if sticker_id is state.id
+    robot.emit "room_state_handler_sticker_default", msg, state
+
+  robot.on "room_state_handler_message_default", (msg, state) ->
+    rand = Math.random()*100
+    if rand <= 5
+      robot.emit "send_random_sticker", msg
+    else if room_states.get(msg.message.room)?
+      robot.emit "reset_state", msg
+
