@@ -133,6 +133,7 @@ module.exports = (robot) ->
     unless stickers.subscribing msg.message.stickerID
       robot.emit "room_state_handler_message_default", msg, state
       return
+    sticker_id = msg.message.stickerID
     rate = state.rate || 40
     spammed = true
     unless state?.no_spam
