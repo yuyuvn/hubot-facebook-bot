@@ -1,4 +1,4 @@
-# Description:
+﻿# Description:
 #   Spam meo
 #
 # Dependencies:
