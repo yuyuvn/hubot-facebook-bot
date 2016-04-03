@@ -134,14 +134,14 @@ module.exports = (robot) ->
       robot.emit "room_state_handler_message_default", msg, state
       return
     sticker_id = msg.message.stickerID
-    rate = state.rate || 40
+    rate = state.rate || 20
     spammed = true
     unless state?.no_spam
       rand = Math.random()*100
       if rand <= rate
         msg.sendSticker sticker_id
         room_states.set state: "spam", id: sticker_id, msg.message.room
-      else if rand <= (rate*1.25)
+      else if rand <= (rate*1.5)
         robot.emit "send_random_sticker", msg
       else
         spammed = false
