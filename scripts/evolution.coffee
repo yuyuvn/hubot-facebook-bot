@@ -6,10 +6,6 @@
 # Configuration:
 #   GITHUB_REPO
 #   GITHUB_BRANCH (optional)
-#   GITHUB_USERNAME
-#   GITHUB_PASSWORD
-#   GITHUB_ORINGIN
-#   CLONE_PATH (optional)
 #   HUBOT_GITHUB_TOKEN
 #
 # Commands:
@@ -17,20 +13,12 @@
 # Author:
 #   clicia scarlet <yuyuvn@icloud.com>
 
-nodegit = require "nodegit"
-path = require "path"
 promisify = require "promisify-node"
-fse = promisify require "fs-extra"
-appDir = require "app-root-path"
 
 module.exports = (robot) ->
-  github = require("githubot")(robot)
+  github = require('githubot')(robot)
   github_config = repo: process.env.GITHUB_REPO,
-  branch: process.env.GITHUB_BRANCH || "master",
-  username: process.env.GITHUB_USERNAME,
-  password: process.env.GITHUB_PASSWORD,
-  origin: process.env.GITHUB_ORINGIN
-  temp_path = process.env.CLONE_PATH || "#{appDir}/tmp/ria_clone"
+  branch: process.env.GITHUB_BRANCH || "master"
 
   robot.router.get "/hubot/github/evolution/debug", (req, res) ->
     res.setHeader 'content-type', 'text/plain'
@@ -56,97 +44,79 @@ module.exports = (robot) ->
     robot.brain.set "code_queue", queue
     robot.brain.save
 
-    branch_name = "ria-#{(new Date).getTime()}"
-    repo = index = oid = null
+    branch_name = "ria-#{new Date().getTime()}"
+    issue_id = url = owner = null
 
-    fse.remove(temp_path).then ->
-      nodegit.Clone "https://github.com/#{github_config.repo}.git",
-        temp_path,
-        checkoutBranch: github_config.branch
-        fetchOpts:
-          callbacks:
-            certificateCheck: ->
-              1
-    .then (r) ->
-      repo = r
-      repo.getBranchCommit github_config.branch
-    .then (commit) ->
-      repo.createBranch branch_name, commit, 1
-    .then (branch) ->
-      repo.checkoutBranch branch
+    github.post("repos/#{github_config.repo}/issues", title: "Chuẩn bị cho nâng cấp mới").then (issue) ->
+      issue_id = issue.id
+      github.post "repos/#{github_config.repo}/forks", {}
+    .then (fork) ->
+      owner = fork.owner.login
+      url = fork.url
+      github.get "repos/#{github_config.repo}/git/refs/heads/#{github_config.branch}"
+    .then (ref) ->
+      data = ref: "refs/heads/#{branch_name}", sha: ref.object.sha
+      github.post "#{url}/git/refs", data
     .then ->
       Promise.all Object.keys(queue.files).map (file_name) ->
-        fse.writeFile path.join(temp_path, file_name),  queue.files[file_name]
+        data = message: "Cập nhật file #{file_name} cho issue ##{issue_id}", branch: branch_name,
+        content: new Buffer(queue.files[file_name].content).toString 'base64'
+        data.sha = queue.files[file_name].sha if queue.files[file_name].sha?
+        github.put "#{url}/contents/#{file_name}", data
     .then ->
-      repo.openIndex()
-    .then (i) ->
-      index = i
-      index.addAll()
-    .then ->
-      index.write()
-    .then ->
-      index.writeTree()
-    .then (o) ->
-      oid = o
-      nodegit.Reference.nameToId repo, "refs/heads/#{branch_name}"
-    .then (commit) ->
-      repo.getCommit commit
-    .then (parent) ->
-      author = nodegit.Signature.create "Ria Scarlet",
-        "yuyuvn@icloud.com", (new Date).getTime(), 0
-      committer = nodegit.Signature.create "Ria Scarlet",
-        "yuyuvn@icloud.com", (new Date).getTime(), 0
-      repo.createCommit "HEAD", author, committer, "Update", oid, [parent]
-    .then ->
-      nodegit.Remote.create repo, "ria_origin", "https://github.com/#{github_config.origin}.git"
-    .then (remote) ->
-      return remote.push ["refs/heads/#{branch_name}:refs/heads/#{branch_name}"],
-        callbacks:
-          credentials: ->
-            return nodegit.Cred.userpassPlaintextNew github_config.username, github_config.password
-    .then ->
-      data = title: "Nâng cấp cho em đi",
+      data = title: "Resolve ##{issue_id} Nâng cấp cho em đi",
       body: "Cải tiến :heart_eyes:",
-      head: "#{github_config.origin.split("/")[0]}:#{branch_name}",
+      head: "#{owner}:#{branch_name}",
       base: github_config.branch
-      github.post "repos/#{github_config.repo}/pulls", data, (pr) ->
-        robot.logger.debug "Created pull request #{pr.id}"
-    .done ->
+      github.post "repos/#{github_config.repo}/pulls", data
+    .done (pr) ->
+      robot.logger.debug "Created pull request ##{pr.id}"
       robot.brain.remove "code_queue"
 
   robot.on "prepair_to_evolution_add_hutbot_scripts", (msg, files) ->
     queue = robot.brain.get "code_queue"
     queue = files: {} unless queue?
     queue.files = {} unless queue.files?
-    robot.http("https://raw.githubusercontent.com/#{github_config.repo}/\
-      #{github_config.branch}/hubot-scripts.json").get() (err, res, body) ->
-        scripts = JSON.parse body
-        for file in files
-          script = file.replace /(^scripts\/|\.coffee$)/g, ""
-          scripts.push script unless script in scripts
-        queue.files["hubot-scripts.json"] = "#{JSON.stringify(scripts, null, 2)}\n"
+    sha = ""
+    data = ref: github_config.branch
+    github.get("repos/#{github_config.repo}/contents/hubot-scripts.json", data).then (content) ->
+      robot.logger.debug content
+      sha = content.sha
+      github.get content.download_url
+    .done (scripts) ->
+      for file in files
+        script = file.replace /(^scripts\/|\.coffee$)/g, ""
+        scripts.push script unless script in scripts
+      queue.files["hubot-scripts.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
+      robot.brain.set "code_queue", queue
 
   robot.on "prepair_to_evolution_add_external_scripts", (msg, libs) ->
     queue = robot.brain.get "code_queue"
     queue = files: [] unless queue?
     queue.files = [] unless queue.files?
-    robot.http("https://raw.githubusercontent.com/#{github_config.repo}/\
-      #{github_config.branch}/external-scripts.json").get() (err, res, body) ->
-        scripts = JSON.parse body
-        for script in libs
-          scripts.push script unless script in scripts
-        queue.files["external-scripts.json"] = "#{JSON.stringify(scripts, null, 2)}\n"
+    sha = ""
+    data = ref: github_config.branch
+    github.get("repos/#{github_config.repo}/contents/external-scripts.json", data).then (content) ->
+      sha = content.sha
+      github.get content.download_url
+    .done (scripts) ->
+      for file in libs
+        scripts.push script unless script in scripts
+      queue.files["external-scripts.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
+      robot.brain.set "code_queue", queue
 
   robot.on "prepair_to_evolution_add_package", (msg, libs) ->
     queue = robot.brain.get "code_queue"
     queue = files: [] unless queue?
     queue.files = [] unless queue.files?
-    robot.http("https://raw.githubusercontent.com/#{github_config.repo}/\
-      #{github_config.branch}/package.json").get() (err, res, body) ->
-        data = JSON.parse body
-        dependencies = data.dependencies
-        for lib, version of libs
-          data.dependencies[lib] = version
-        queue.files["package.json"] = "#{JSON.stringify(data, null, 2)}\n"
-
-
+    sha = ""
+    data = ref: github_config.branch
+    github.get("repos/#{github_config.repo}/contents/external-scripts.json", data).then (content) ->
+      sha = content.sha
+      github.get content.download_url
+    .done (scripts) ->
+      dependencies = scripts.dependencies
+      for lib, version of libs
+        scripts.dependencies[lib] = version
+      queue.files["external-scripts.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
+      robot.brain.set "code_queue", queue
