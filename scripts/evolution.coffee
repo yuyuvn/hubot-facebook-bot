@@ -13,8 +13,6 @@
 # Author:
 #   clicia scarlet <yuyuvn@icloud.com>
 
-promisify = require "promisify-node"
-
 module.exports = (robot) ->
   github = require('githubot')(robot)
   github_config = repo: process.env.GITHUB_REPO,
@@ -32,7 +30,7 @@ module.exports = (robot) ->
 
     queue = robot.brain.get "code_queue"
     return res.send "Nothing to do" unless queue?
-    #return res.send "Coding..." if queue.locked
+    return res.send "Coding..." if queue.locked
 
     action = queue.state || "run_evolution"
     robot.emit action, res
@@ -47,31 +45,42 @@ module.exports = (robot) ->
     branch_name = "ria-#{new Date().getTime()}"
     issue_id = url = owner = null
 
-    github.post("repos/#{github_config.repo}/issues", title: "Chuẩn bị cho nâng cấp mới").then (issue) ->
-      issue_id = issue.id
+    github.post("repos/#{github_config.repo}/issues", title: "Chuẩn bị cho nâng cấp mới #{branch_name}").then (issue) ->
+      robot.logger.debug "Create issue"
+      issue_id = issue.number
       github.post "repos/#{github_config.repo}/forks", {}
     .then (fork) ->
+      robot.logger.debug "Create new branch"
       owner = fork.owner.login
       url = fork.url
       github.get "repos/#{github_config.repo}/git/refs/heads/#{github_config.branch}"
     .then (ref) ->
+      robot.logger.debug "Get head of branch"
       data = ref: "refs/heads/#{branch_name}", sha: ref.object.sha
       github.post "#{url}/git/refs", data
     .then ->
+      robot.logger.debug "Start create file"
       Promise.all Object.keys(queue.files).map (file_name) ->
-        data = message: "Cập nhật file #{file_name} cho issue ##{issue_id}", branch: branch_name,
+        data = message: "Cập nhật file #{file_name} theo issue ##{issue_id}", branch: branch_name,
         content: new Buffer(queue.files[file_name].content).toString 'base64'
         data.sha = queue.files[file_name].sha if queue.files[file_name].sha?
         github.put "#{url}/contents/#{file_name}", data
     .then ->
-      data = title: "Resolve ##{issue_id} Nâng cấp cho em đi",
-      body: "Cải tiến :heart_eyes:",
+      robot.logger.debug "Create pull-request"
+      data = title: "Nâng cấp cho em đi",
+      body: "Resolve ##{issue_id}",
       head: "#{owner}:#{branch_name}",
       base: github_config.branch
       github.post "repos/#{github_config.repo}/pulls", data
-    .done (pr) ->
+    .then (pr) ->
       robot.logger.debug "Created pull request ##{pr.id}"
       robot.brain.remove "code_queue"
+    .catch (err) ->
+      queue.locked = false
+      robot.brain.set "code_queue", queue
+      robot.logger.debug err
+      robot.logger.debug "Rolling back..."
+      github.patch "repos/#{github_config.repo}/issues/#{issue_id}", {state: "closed"}
 
   robot.on "prepair_to_evolution_add_hutbot_scripts", (msg, files) ->
     queue = robot.brain.get "code_queue"
@@ -80,10 +89,9 @@ module.exports = (robot) ->
     sha = ""
     data = ref: github_config.branch
     github.get("repos/#{github_config.repo}/contents/hubot-scripts.json", data).then (content) ->
-      robot.logger.debug content
       sha = content.sha
       github.get content.download_url
-    .done (scripts) ->
+    .then (scripts) ->
       for file in files
         script = file.replace /(^scripts\/|\.coffee$)/g, ""
         scripts.push script unless script in scripts
@@ -99,7 +107,7 @@ module.exports = (robot) ->
     github.get("repos/#{github_config.repo}/contents/external-scripts.json", data).then (content) ->
       sha = content.sha
       github.get content.download_url
-    .done (scripts) ->
+    .then (scripts) ->
       for file in libs
         scripts.push script unless script in scripts
       queue.files["external-scripts.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
@@ -111,12 +119,12 @@ module.exports = (robot) ->
     queue.files = [] unless queue.files?
     sha = ""
     data = ref: github_config.branch
-    github.get("repos/#{github_config.repo}/contents/external-scripts.json", data).then (content) ->
+    github.get("repos/#{github_config.repo}/contents/package.json", data).then (content) ->
       sha = content.sha
       github.get content.download_url
-    .done (scripts) ->
+    .then (scripts) ->
       dependencies = scripts.dependencies
       for lib, version of libs
         scripts.dependencies[lib] = version
-      queue.files["external-scripts.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
+      queue.files["package.json"] = content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha
       robot.brain.set "code_queue", queue

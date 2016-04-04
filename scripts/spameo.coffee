@@ -15,40 +15,38 @@ crc = require 'crc'
 
 class CachedData
   constructor: (@robot, @key) ->
-    @cached = {}
     @robot.brain.on 'loaded', =>
-      if @robot.brain.get(@key)?
-        @cached = @robot.brain.get @key
-      else
-        @robot.brain.set @key, @cached
+      unless @robot.brain.get(@key)?
+        @robot.brain.set @key, {}
 
   get: (paths...) ->
-    data = @cached
+    data = @robot.brain.get @key
     for path in paths
       return null if not data[path]?
       data = data[path]
     data
 
   set: (value, paths...) ->
-    parent_data = @cached
+    data = @robot.brain.get @key
+    parent_data = data
     last_path = paths.splice(-1,1)
     for path in paths
       parent_data[path] = {} if not parent_data[path]?
       parent_data = parent_data[path]
     parent_data[last_path] = value
-    @robot.brain.set @key, @cached
+    @robot.brain.set @key, data
 
   remove: (paths...) ->
-    parent_data = @cached
+    data = @robot.brain.get @key
     last_path = paths.splice(-1,1)
     for path in paths
       return if not parent_data[path]?
     delete parent_data[last_path]
-    @robot.brain.set @key, @cached
+    @robot.brain.set @key, data || {}
 
   clean: ->
-    @cached = {}
     @robot.brain.remove @key
+    @robot.brain.set @key, {}
 
 
 class Stickers
@@ -218,7 +216,7 @@ module.exports = (robot) ->
   robot.on "prepair_to_evolution", (msg, data) ->
     code = "# Description:\n#\n# Dependencies:\n#\n# Configuration:\n#\n# Commands:\n#\n# Author:\n#   Ria Scarlet\n\n"
     code += data.hook_root if data.hook_root?
-    code += "module.exports = (robot) ->\n"
+    code += "module.exports = (robot) ->"
     code += data.code
 
     file_name = "scripts/ria_#{new Date().getTime()}.coffee"
