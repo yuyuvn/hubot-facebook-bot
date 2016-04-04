@@ -221,9 +221,9 @@ module.exports = (robot) ->
     code += "module.exports = (robot) ->\n"
     code += data.code
 
-    file_name = "scripts/ria_#{(new Date).getTime()}.coffee"
+    file_name = "scripts/ria_#{new Date().getTime()}.coffee"
     queue = {files:{}}
-    queue.files[file_name] = code
+    queue.files[file_name] = content: code
     robot.brain.set "code_queue", queue
     robot.emit "prepair_to_evolution_add_hutbot_scripts", msg, [file_name]
     room_states.set state: "default", msg.message.room
