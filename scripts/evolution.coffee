@@ -122,7 +122,7 @@ module.exports = (robot) ->
       #{github_config.branch}/hubot-scripts.json").get() (err, res, body) ->
         scripts = JSON.parse body
         for file in files
-          script = file.replace /(^scripts\/|\.coffee$)/, ""
+          script = file.replace /(^scripts\/|\.coffee$)/g, ""
           scripts.push script unless script in scripts
         queue.files["hubot-scripts.json"] = "#{JSON.stringify(scripts, null, 2)}\n"
 
