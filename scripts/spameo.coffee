@@ -85,9 +85,6 @@ module.exports = (robot) ->
   for key, value of vocabulary
     vocabulary_regex[key] = "(#{value.join("|")})"
 
-  robot.respondSticker = (regex, callback) ->
-    robot.listeners.push new HubotFacebook.StickerListener robot, regex, callback
-
   robot.on "reset_state", (msg) ->
     room_states.clean msg.message.room
 
@@ -122,7 +119,7 @@ module.exports = (robot) ->
   robot.catchAll (msg) ->
     state_data = room_states.get(msg.message.room) || {}
     state = state_data.state || "default"
-    if msg.message.stickerID?
+    if msg.message.fields.stickerID?
       robot.emit "room_state_handler_sticker_#{state}", msg, state_data
       robot.logger.debug "Trigger room_state_handler_sticker_#{state}"
     else if msg.message.text?
@@ -130,10 +127,10 @@ module.exports = (robot) ->
       robot.logger.debug "Trigger room_state_handler_message_#{state}"
 
   robot.on "room_state_handler_sticker_default", (msg, state) ->
-    unless stickers.subscribing msg.message.stickerID
+    unless stickers.subscribing msg.message.fields.stickerID
       robot.emit "room_state_handler_message_default", msg, state
       return
-    sticker_id = msg.message.stickerID
+    sticker_id = msg.message.fields.stickerID
     rate = state.rate || 20
     spammed = true
     unless state?.no_spam
@@ -150,7 +147,7 @@ module.exports = (robot) ->
       room_states.set state: "chain", id: sticker_id, times: times, msg.message.room
 
   robot.on "room_state_handler_sticker_add", (msg, state) ->
-    sticker_id = msg.message.stickerID
+    sticker_id = msg.message.fields.stickerID
     sticker_url = msg.message.text
     if stickers.subscribe sticker_id, sticker_url
       msg.send "Từ giờ em sẽ spam #{sticker_id} :3"
@@ -159,7 +156,7 @@ module.exports = (robot) ->
     robot.emit "reset_state", msg
 
   robot.on "room_state_handler_sticker_remove", (msg, state) ->
-    sticker_id = msg.message.stickerID
+    sticker_id = msg.message.fields.stickerID
     sticker_url = msg.message.text
     if stickers.unsubscribe sticker_id, sticker_url
       msg.send "Từ giờ em sẽ ngừng spam #{sticker_id} ạ :'("
@@ -168,12 +165,12 @@ module.exports = (robot) ->
     robot.emit "reset_state", msg
 
   robot.on "room_state_handler_sticker_spam", (msg, state) ->
-    sticker_id = msg.message.stickerID
+    sticker_id = msg.message.fields.stickerID
     spammed = sticker_id is state.id
     robot.emit "room_state_handler_sticker_default", msg, state unless spammed
 
   robot.on "room_state_handler_sticker_chain", (msg, state) ->
-    sticker_id = msg.message.stickerID
+    sticker_id = msg.message.fields.stickerID
     state.rate = 0 if state.rate?
     state.rate += 10*state.times if sticker_id is state.id
     robot.emit "room_state_handler_sticker_default", msg, state
