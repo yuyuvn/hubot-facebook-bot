@@ -12,6 +12,8 @@
     "orchestrate-brain": "0.0.5",
     "hubot-facebook": "yuyuvn/hubot-facebook",
     "coffee-script": "1.10.0",
+    "dotenv": "2.0.0",
+    "facebook-chat-api": "Schmavery/facebook-chat-api",
     "hubot-relay": "yuyuvn/hubot-relay",
     "iconv-lite": "0.4.13"
   },

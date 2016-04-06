@@ -119,7 +119,7 @@ module.exports = (robot) ->
   robot.catchAll (msg) ->
     state_data = room_states.get(msg.message.room) || {}
     state = state_data.state || "default"
-    if msg.message.fields.stickerID?
+    if msg.message.fields?.stickerID?
       robot.emit "room_state_handler_sticker_#{state}", msg, state_data
       robot.logger.debug "Trigger room_state_handler_sticker_#{state}"
     else if msg.message.text?
@@ -127,7 +127,7 @@ module.exports = (robot) ->
       robot.logger.debug "Trigger room_state_handler_message_#{state}"
 
   robot.on "room_state_handler_sticker_default", (msg, state) ->
-    unless stickers.subscribing msg.message.fields.stickerID
+    unless stickers.subscribing msg.message.fields?.stickerID
       robot.emit "room_state_handler_message_default", msg, state
       return
     sticker_id = msg.message.fields.stickerID
