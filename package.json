@@ -2,11 +2,11 @@
   "name": "hubot",
   "version": "0.0.0",
   "private": true,
-
   "author": "Clicia Scarlet",
-
+  "scripts": {
+    "test": "mocha --compilers coffee:coffee-script/register --reporter spec"
+  },
   "description": "A bot that can't do anything",
-
   "dependencies": {
     "hubot": "~2.13.2",
     "orchestrate-brain": "0.0.5",
@@ -15,12 +15,16 @@
     "hubot-relay": "yuyuvn/hubot-relay",
     "app-root-path": "1.0.0",
     "fs-extra": "0.26.7",
-    "nodegit": "0.12.1",
     "githubot": "1.0.0",
     "dotenv": "2.0.0",
+    "mocha": "~1.13.0",
+    "promisify-node": "~0.4.0",
+    "should": "~8.3.0",
+    "escape-string-regexp": "~1.0.5",
+    "array-unique": "~0.2.1",
+    "hubot-mock-adapter": "~1.0.0",
     "iconv-lite": "0.4.13"
   },
-
   "engines": {
     "node": "5.8.x"
   }

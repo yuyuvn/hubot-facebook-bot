@@ -1,1 +1,6 @@
-["spameo","keepalive","evolution"]
+[
+  "spameo",
+  "keepalive",
+  "evolution",
+  "command_parser"
+]
