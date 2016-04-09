@@ -112,7 +112,6 @@ module.exports = (robot) ->
     states.code.set queue
     robot.emit "prepair_to_evolution_add_hutbot_scripts", msg, [file_name]
     robot.emit "reset_state", msg
-    robot.emit "facebook.sendSticker", message: msg, sticker: "144885335685733"
 
   robot.on "room_state_handler_message_learn_wait_for_finish_confirm", (msg, state) ->
     if msg.message.text.match robot.respondPattern new RegExp "#{semantic.regex(":yes")}"
@@ -187,14 +186,14 @@ module.exports = (robot) ->
     scope = {}
     current_scope = scope
     current_scope.conditions = [conditions.shift()]
-    do_event = crc.crc32(ops.join('')).toString(16)
+    do_event = "#{(new Date).getTime()}_#{crc.crc32(Math.random()).toString(16)}"
     for op in ops
       switch op
         when "or"
           current_scope.conditions.push conditions.shift()
         when "then"
           regex = "#{current_scope.conditions[0].object}_#{Math.floor((Math.random()*1000))}"
-          stateID = crc.crc32(regex).toString(16)
+          stateID = "#{(new Date).getTime()}_#{crc.crc32(Math.random()).toString(16)}"
           current_scope.action = "states.room.set state: \"#{stateID}\", msg.message.room"
           current_scope.child_scope= {stateID: stateID}
           current_scope = current_scope.child_scope
