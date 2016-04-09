@@ -6,10 +6,6 @@ escapeStringRegexp = require "escape-string-regexp"
 unique = require "array-unique"
 
 class Semantic
-  load_data: ->
-    fse.readJson(appDir + "/data/syntax.json").done (err, syntax) => @syntax_data = syntax
-    fse.readJson(appDir + "/data/vocabulary.json").done (err, vocabulary) => @vocabulary_data = vocabulary
-
   load_data_sync: ->
     @syntax_data = fse.readJsonSync appDir + "/data/syntax.json"
     @vocabulary_data = fse.readJsonSync appDir + "/data/vocabulary.json"
@@ -80,7 +76,7 @@ module.exports = exports = {
   Semantic
   Singleton: ->
     semantic = if semantic? then semantic else new Semantic
-    semantic.load_data() unless semantic.syntax_data? and semantic.vocabulary_data?
+    semantic.load_data_sync() unless semantic.syntax_data? and semantic.vocabulary_data?
     semantic
 }
 
