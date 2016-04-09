@@ -33,7 +33,7 @@ describe "Evolution", ->
   it "return if nothing to code", (done) =>
     @robot.on "run_evolution", (res) ->
       res.fail()
-    @http.post["/hubot/github/evolution"] null,
+    @http.get["/hubot/github/evolution"] null,
       setHeader: ->
       send: (data) ->
     setTimeout =>
@@ -44,7 +44,7 @@ describe "Evolution", ->
     @robot.brain.data.ria_code_states = files: {}, locked: true
     @robot.on "run_evolution", (res) ->
       res.fail()
-    @http.post["/hubot/github/evolution"] null,
+    @http.get["/hubot/github/evolution"] null,
       setHeader: ->
       send: (data) ->
     setTimeout =>

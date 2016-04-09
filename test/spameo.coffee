@@ -121,7 +121,6 @@ describe "Spam sticker", ->
     @robot.on "room_state_handler_sticker_test", ->
       done()
     sendSticker "1530358710538271"
-    done() # adapter bug?
 
   it "show sticker list", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
