@@ -1,0 +1,20 @@
+{
+  "simple": ["#subject #predicative"],
+  "join": ["#simple1 :join #simple2"],
+  "simple1": ["simple"],
+  "simple2": ["simple"],
+  "subject": [":subject", ":noun"],
+  "predicative": [":verb", ":verb :noun"],
+  "cause": [":because #simple :result #simple"],
+  "spam": [":spam :sticker"],
+  "start_lesson": [":start :learn",":to #lesson_time :finished_prefix"],
+  "lesson_time": [":time :learn"],
+  "eval": [":execute #command"],
+  "command": [":command", "câu :command", "đoạn :command", "mã lệnh", "đoạn code"],
+  "show": ["thể hiện :emo"],
+  "what": ["#subject là gì"],
+  "what_emo": ["#subject là :emo gì"],
+  "dont_know": ["không biết #clause"],
+  "clause": ["#simple"],
+  "upgrade": ["nâng :level", "cải tiến", "lên :level", "lên :level mới", "thăng :level"]
+}
