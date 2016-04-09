@@ -110,7 +110,8 @@ module.exports = (robot) ->
     queue.files = {} unless queue.files?
     queue.files[file_name] = content: code
     states.code.set queue
-    robot.emit "prepair_to_evolution_add_hutbot_scripts", msg, [file_name]
+    robot.emit "prepair_to_evolution_add_hutbot_scripts", msg, [file_name], ->
+      robot.emit "run_evolution", msg
     robot.emit "reset_state", msg
 
   robot.on "room_state_handler_message_learn_wait_for_finish_confirm", (msg, state) ->

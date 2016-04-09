@@ -122,16 +122,16 @@ module.exports = (robot) ->
       github.post "repos/#{github_config.repo}/pulls", data
     .then (pr) ->
       robot.logger.debug "Created pull request ##{pr.id} successfully"
-      robot.messageRoom room, "Em vừa tạo pull-request ở đây ạ\n#{pr.html_url}" if room?
+      res.send "Em vừa tạo pull-request ở đây ạ\n#{pr.html_url}"
       states.code.clean()
     .catch (err) ->
-      robot.messageRoom room, "Bài lúc nãy em không nhớ được :'(" if room?
+      res.send "Bài lúc nãy em không nhớ được :'("
       states.code.remove "locked"
       robot.logger.debug err
       robot.logger.debug "Rolling back..."
       github.patch "repos/#{github_config.repo}/issues/#{issue_id}", {state: "closed"}
 
-  robot.on "prepair_to_evolution_add_hutbot_scripts", (msg, files) ->
+  robot.on "prepair_to_evolution_add_hutbot_scripts", (msg, files, cb) ->
     states.code.extend files: {}
     state = states.code.get()
     files_data = states.code.get "files"
@@ -141,6 +141,7 @@ module.exports = (robot) ->
         script = file.replace /(^scripts\/|\.coffee$)/g, ""
         scripts.push script unless script in scripts
       files_data["hubot-scripts.json"].content = "#{JSON.stringify(scripts, null, 2)}\n"
+      cb() if cb?
     else
       sha = ""
       data = ref: github_config.branch
@@ -152,8 +153,9 @@ module.exports = (robot) ->
           script = file.replace /(^scripts\/|\.coffee$)/g, ""
           scripts.push script unless script in scripts
         states.code.set content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha, "files", "hubot-scripts.json"
+        cb() if cb?
 
-  robot.on "prepair_to_evolution_add_external_scripts", (msg, libs) ->
+  robot.on "prepair_to_evolution_add_external_scripts", (msg, libs, cb) ->
     states.code.extend files: {}
     state = states.code.get()
     files_data = states.code.get "files"
@@ -162,6 +164,7 @@ module.exports = (robot) ->
       for script in libs
         scripts.push script unless script in scripts
       files_data["external-scripts.json"].content = "#{JSON.stringify(scripts, null, 2)}\n"
+      cb() if cb?
     else
       sha = ""
       data = ref: github_config.branch
@@ -172,8 +175,9 @@ module.exports = (robot) ->
         for script in libs
           scripts.push script unless script in scripts
         states.code.set content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha, "files", "external-scripts.json"
+        cb() if cb?
 
-  robot.on "prepair_to_evolution_add_package", (msg, libs) ->
+  robot.on "prepair_to_evolution_add_package", (msg, libs, cb) ->
     states.code.extend files: {}
     state = states.code.get()
     files_data = states.code.get "files"
@@ -183,6 +187,7 @@ module.exports = (robot) ->
       for lib, version of libs
         scripts.dependencies[lib] = version
       files_data["package.json"].content = "#{JSON.stringify(scripts, null, 2)}\n"
+      cb() if cb?
     else
       sha = ""
       data = ref: github_config.branch
@@ -194,3 +199,4 @@ module.exports = (robot) ->
         for lib, version of libs
           scripts.dependencies[lib] = version
         states.code.set content: "#{JSON.stringify(scripts, null, 2)}\n", sha: sha, "files", "external-scripts.json"
+        cb() if cb?
