@@ -10,6 +10,9 @@ class Semantic
     @syntax_data = fse.readJsonSync appDir + "/data/syntax.json"
     @vocabulary_data = fse.readJsonSync appDir + "/data/vocabulary.json"
 
+  random: (items) ->
+    items[ Math.floor(Math.random() * items.length) ]
+
   # Input is a key from syntax list
   # Output is string
   say: (sentence, data={}) ->
