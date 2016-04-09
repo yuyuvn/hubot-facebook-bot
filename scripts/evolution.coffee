@@ -29,7 +29,7 @@ module.exports = (robot) ->
   robot.router.get "/hubot/github/evolution/unlock", (req, res) ->
     res.setHeader "content-type", "application/json"
     states.code.remove "locked"
-    res.send "OK"
+    res.send "{status: \"OK\"}"
 
   robot.router.get "/hubot/github/evolution", (req, res) ->
     res.setHeader "content-type", "text/plain"
@@ -49,9 +49,10 @@ module.exports = (robot) ->
     branch_name = "ria-#{new Date().getTime()}"
     issue_id = url = owner = head_sha = null
 
+
     robot.logger.debug "Create issue"
     github.post("repos/#{github_config.repo}/issues",
-      title: "Chuẩn bị cho #{res.random semantic.say "#upgrade"} #{branch_name}").then (issue) ->
+      title: "Chuẩn bị cho #{semantic.random semantic.say "#upgrade"} #{branch_name}").then (issue) ->
       issue_id = issue.number
       robot.logger.debug "Fork repo"
       github.post "repos/#{github_config.repo}/forks"
@@ -114,7 +115,7 @@ module.exports = (robot) ->
     .then ->
       robot.logger.debug "Create pull-request"
       data =
-        title: res.random semantic.say "#upgrade cho em :please_prefix"
+        title: semantic.random semantic.say "#upgrade cho em :please_prefix"
         body: "Resolve ##{issue_id}"
         head: "#{owner}:#{branch_name}"
         base: github_config.branch
