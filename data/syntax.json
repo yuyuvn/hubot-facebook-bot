@@ -16,5 +16,6 @@
   "what_emo": ["#subject là :emo gì"],
   "dont_know": ["không biết #clause"],
   "clause": ["#simple"],
-  "upgrade": ["nâng :level", "cải tiến", "lên :level", "lên :level mới", "thăng :level"]
+  "upgrade": ["nâng :level", "cải tiến", "lên :level", "lên :level mới", "thăng :level"],
+  "said": [":told", ":speaked", "#spam"]
 }

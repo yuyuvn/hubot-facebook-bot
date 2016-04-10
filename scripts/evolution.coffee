@@ -31,6 +31,11 @@ module.exports = (robot) ->
     states.code.remove "locked"
     res.send status: "OK"
 
+  robot.router.get "/hubot/github/evolution/clean", (req, res) ->
+    res.setHeader "content-type", "application/json"
+    states.code.remove()
+    res.send status: "OK"
+
   robot.router.get "/hubot/github/evolution", (req, res) ->
     res.setHeader "content-type", "text/plain"
 
