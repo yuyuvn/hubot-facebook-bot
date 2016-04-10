@@ -1,10 +1,16 @@
 path   = require "path"
 should = require "should"
 
-{CachedData, State} = require "../lib/state"
-{Robot} = require "hubot"
+{CachedData, Stickers, RoomState, UserState} = require "../lib/state"
+{Robot, TextMessage} = require "hubot"
+{StickerMessage} = require "hubot-facebook"
 
 describe "State", ->
+  say = (string) =>
+    @adapter.receive new TextMessage @user, string
+  sendSticker = (stickerID) =>
+    @adapter.receive new StickerMessage @user, "http://abc.com", "messageID", stickerID: stickerID
+
   beforeEach (done) =>
     @http = get: {}, post: {}
     @robot = new Robot null, "mock-adapter", false, "hubot"
@@ -93,43 +99,101 @@ describe "State", ->
       data.child1 = "foo"
       @robot.brain.data.test.should.deepEqual test: child1: "foo", child2: "xyz"
 
-  context "State", =>
+  context "Stickers", =>
     beforeEach =>
-      @state = new State @robot
+      @stickers = new Stickers @robot
 
     afterEach =>
-      @state.room.clean()
-      @state.code.clean()
-      @state.stickers.unsubscribe_all()
-      delete @state
-
-    it "create datas", =>
-      @state.room.should.not.be.null()
-      @state.code.should.not.be.null()
-      @state.stickers.should.not.be.null()
+      delete @stickers
 
     it "subscribe sticker", =>
-      @state.stickers.subscribe("id", "url").should.not.be.false()
+      @stickers.subscribe("id", "url").should.not.be.false()
       @robot.brain.data.stickers.id.should.equal "url"
-      @state.stickers.subscribe("id", "url").should.be.false()
+      @stickers.subscribe("id", "url").should.be.false()
 
     it "unsubscribe sticker", =>
-      @state.stickers.unsubscribe("id").should.be.false()
+      @stickers.unsubscribe("id").should.be.false()
       @robot.brain.data.stickers = id: "url"
-      @state.stickers.unsubscribe("id").should.not.be.false()
+      @stickers.unsubscribe("id").should.not.be.false()
       should(@robot.brain.data.stickers.id).equalOneOf null, undefined
 
     it "unsubscribe_all all", =>
-      @state.stickers.unsubscribe_all().should.be.false()
+      @stickers.unsubscribe_all().should.be.false()
       @robot.brain.data.stickers = id1: "url1", id2: "url2"
-      @state.stickers.unsubscribe_all().should.not.be.false()
+      @stickers.unsubscribe_all().should.not.be.false()
       @robot.brain.data.stickers.should.be.empty()
 
     it "return list of subscribing sticker id", =>
       @robot.brain.data.stickers = id1: "url1", id2: "url2"
-      @state.stickers.subscribing().should.deepEqual ["id1","id2"]
+      @stickers.subscribing().should.deepEqual ["id1","id2"]
 
     it "return state of sticker", =>
       @robot.brain.data.stickers = id: "url"
-      @state.stickers.subscribing("id").should.equal "url"
-      should(@state.stickers.subscribing("id2")).null()
+      @stickers.subscribing("id").should.equal "url"
+      should(@stickers.subscribing("id2")).null()
+
+  context "RoomState", =>
+    beforeEach =>
+      @state = new RoomState @robot, "test"
+
+    afterEach =>
+      delete @state
+
+    it "trigger default message event", (done) =>
+      @robot.on "ria_room_states_test_message_default", -> done()
+      @robot.on "ria_room_states_test_sticker_default", -> throw "should not called"
+      say "abc"
+
+    it "trigger default sticker event", (done) =>
+      @robot.on "ria_room_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_room_states_test_sticker_default", -> done()
+      sendSticker "123"
+
+    it "trigger correct message event", (done) =>
+      @robot.brain.data.ria_room_states_test = roomid: state: "foo"
+      @robot.on "ria_room_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_room_states_test_sticker_default", -> throw "should not called"
+      @robot.on "ria_room_states_test_message_foo", -> done()
+      @robot.on "ria_room_states_test_sticker_foo", -> throw "should not called"
+      say "abc"
+
+    it "trigger correct message event", (done) =>
+      @robot.brain.data.ria_room_states_test = roomid: state: "foo"
+      @robot.on "ria_room_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_room_states_test_sticker_default", -> throw "should not called"
+      @robot.on "ria_room_states_test_message_foo", -> throw "should not called"
+      @robot.on "ria_room_states_test_sticker_foo", -> done()
+      sendSticker "123"
+
+  context "UserState", =>
+    beforeEach =>
+      @state = new UserState @robot, "test"
+
+    afterEach =>
+      delete @state
+
+    it "trigger default message event", (done) =>
+      @robot.on "ria_user_states_test_message_default", -> done()
+      @robot.on "ria_user_states_test_sticker_default", -> throw "should not called"
+      say "abc"
+
+    it "trigger default sticker event", (done) =>
+      @robot.on "ria_user_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_user_states_test_sticker_default", -> done()
+      sendSticker "123"
+
+    it "trigger correct message event", (done) =>
+      @robot.brain.data.ria_user_states_test = "1": state: "foo"
+      @robot.on "ria_user_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_user_states_test_sticker_default", -> throw "should not called"
+      @robot.on "ria_user_states_test_message_foo", -> done()
+      @robot.on "ria_user_states_test_sticker_foo", -> throw "should not called"
+      say "abc"
+
+    it "trigger correct message event", (done) =>
+      @robot.brain.data.ria_user_states_test = "1": state: "foo"
+      @robot.on "ria_user_states_test_message_default", -> throw "should not called"
+      @robot.on "ria_user_states_test_sticker_default", -> throw "should not called"
+      @robot.on "ria_user_states_test_message_foo", -> throw "should not called"
+      @robot.on "ria_user_states_test_sticker_foo", -> done()
+      sendSticker "123"

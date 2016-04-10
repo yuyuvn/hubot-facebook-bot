@@ -15,10 +15,10 @@
 
 github = require "githubot"
 semantic = require("../lib/semantic").Singleton()
-{State} = require "../lib/state"
+{CachedData} = require "../lib/state"
 
 module.exports = (robot) ->
-  states = new State robot
+  states = code: new CachedData robot, "ria_code_states"
   github_config = repo: process.env.GITHUB_REPO,
   branch: process.env.GITHUB_BRANCH || "master"
 

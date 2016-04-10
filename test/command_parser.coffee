@@ -24,7 +24,7 @@ describe "Parse command", ->
       script @robot
       @user = @robot.brain.userForId "1", name: "username", room: "roomid"
       @adapter = @robot.adapter
-      @robot.brain.data.ria_room_states = {}
+      @robot.brain.data.ria_room_states_command_parser = {}
       done()
     @robot.run()
 
@@ -32,14 +32,22 @@ describe "Parse command", ->
     @robot.shutdown()
 
   context "receive command", =>
+    it "reset state", (done) =>
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn"
+      @robot.emit "reset_state_cp", message: room: "roomid"
+      setTimeout =>
+        @robot.brain.data.ria_room_states_command_parser.should.empty()
+        done()
+      , 20
+
     it "start learn", (done) =>
       @robot.on "facebook.sendSticker", =>
-        @robot.brain.data.ria_room_states.roomid.state.should.equal "learn"
+        @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn"
         done()
       to "bắt đầu học nào"
 
     it "show current state", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn"
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn"
       @http.get["/hubot/self_programming/:room"] {params: room: "roomid"},
         setHeader: ->
         send: (code) =>
@@ -47,7 +55,7 @@ describe "Parse command", ->
           done()
 
     it "show queued code", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn", data: code: "abc"
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn", data: code: "abc"
       @http.get["/hubot/self_programming/:room"] {params: room: "roomid"},
         setHeader: ->
         send: (code) =>
@@ -62,108 +70,108 @@ describe "Parse command", ->
       , 20
 
     it "confirm end lesson", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn"
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn"
       @robot.emit "finish_learning",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "confirm end lesson 2", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn"
-      @robot.emit "room_state_handler_message_learn",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn"
+      @robot.emit "ria_room_states_command_parser_message_learn",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "confirm end lesson 3", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn_wait_for_subject"
-      @robot.emit "room_state_handler_message_learn_wait_for_subject",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn_wait_for_subject"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_subject",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn_wait_for_subject"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn_wait_for_subject"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "confirm end lesson 4", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn_wait_for_condition_input"
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_input",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn_wait_for_condition_input"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_input",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn_wait_for_condition_input"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn_wait_for_condition_input"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "confirm end lesson 5", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn_wait_for_condition_or_action"
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_or_action",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn_wait_for_condition_or_action"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_or_action",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn_wait_for_condition_or_action"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn_wait_for_condition_or_action"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "confirm end lesson 6", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn_wait_for_condition_statement"
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_statement",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn_wait_for_condition_statement"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_statement",
         message: text: "abc"
         send: =>
-          @robot.brain.data.ria_room_states.roomid.old_state.should.equal "learn_wait_for_condition_statement"
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_finish_confirm"
+          @robot.brain.data.ria_room_states_command_parser.roomid.old_state.should.equal "learn_wait_for_condition_statement"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_finish_confirm"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "don't change state", (done) =>
-      @robot.brain.data.ria_room_states.roomid = state: "learn_wait_for_action_statement"
-      @robot.emit "room_state_handler_message_learn_wait_for_action_statement",
+      @robot.brain.data.ria_room_states_command_parser.roomid = state: "learn_wait_for_action_statement"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_action_statement",
         message: text: "abc"
         random: (array) -> array[0]
         send: =>
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "learn_wait_for_action_statement"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "learn_wait_for_action_statement"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "restore state after cancel confirm", (done) =>
-      @robot.brain.data.ria_room_states.roomid = old_state: "abc"
-      @robot.emit "room_state_handler_message_learn_wait_for_finish_confirm",
+      @robot.brain.data.ria_room_states_command_parser.roomid = old_state: "abc"
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_finish_confirm",
         message: text: "không"
         random: (array) -> array[0]
         send: =>
-          @robot.brain.data.ria_room_states.roomid.state.should.equal "abc"
+          @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "abc"
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "restore state after cancel confirm 2", (done) =>
-      @robot.brain.data.ria_room_states.roomid = old_state: "abc"
+      @robot.brain.data.ria_room_states_command_parser.roomid = old_state: "abc"
       @robot.on "facebook.sendSticker", (msg, sticker) =>
-        @robot.brain.data.ria_room_states.roomid.state.should.equal "abc"
+        @robot.brain.data.ria_room_states_command_parser.roomid.state.should.equal "abc"
         done()
-      @robot.emit "room_state_handler_sticker_learn_wait_for_finish_confirm",
+      @robot.emit "ria_room_states_command_parser_sticker_learn_wait_for_finish_confirm",
         message: fields: stickerID: "1530358467204962"
         random: (array) -> array[0]
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "cancel lesson", (done) =>
-      @robot.on "reset_state", =>
+      @robot.on "reset_state_cp", =>
         done()
-      @robot.emit "room_state_handler_message_learn_wait_for_finish_confirm",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_finish_confirm",
         message: text: "hubot ừ"
         random: (array) -> array[0]
         send: ->
       , {}
 
     it "cancel lesson 2", (done) =>
-      @robot.on "reset_state", =>
+      @robot.on "reset_state_cp", =>
         done()
-      @robot.emit "room_state_handler_sticker_learn_wait_for_finish_confirm",
+      @robot.emit "ria_room_states_command_parser_sticker_learn_wait_for_finish_confirm",
         message: fields: stickerID: "1530358710538271"
         random: (array) -> array[0]
         send: ->
@@ -171,7 +179,7 @@ describe "Parse command", ->
 
   context "completed code", =>
     beforeEach =>
-      @robot.brain.data.ria_room_states.roomid = code: "abc"
+      @robot.brain.data.ria_room_states_command_parser.roomid = code: "abc"
 
     it "do not save code if locked", (done) =>
       @robot.brain.data.ria_code_states = locked: true
@@ -179,14 +187,14 @@ describe "Parse command", ->
         send: =>
           @robot.brain.data.ria_code_states.should.deepEqual locked: true
           done()
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "reset state after prepair code", (done) =>
-      @robot.on "reset_state", =>
+      @robot.on "reset_state_cp", =>
         done()
       @robot.emit "prepair_to_evolution",
         send: ->
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "add script to hutbot_scripts", (done) =>
       @robot.on "prepair_to_evolution_add_hutbot_scripts", (msg, data) =>
@@ -194,35 +202,35 @@ describe "Parse command", ->
         done()
       @robot.emit "prepair_to_evolution",
         send: ->
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
     it "prepair code", (done) =>
-      @robot.brain.data.ria_room_states.roomid.hook_root = "xyz"
-      @robot.on "reset_state", =>
+      @robot.brain.data.ria_room_states_command_parser.roomid.hook_root = "xyz"
+      @robot.on "reset_state_cp", =>
         for name, content of @robot.brain.data.ria_code_states.files
           content.should.match new RegExp escapeStringRegexp "emo = require(\"../lib/emotion\").Singleton()"
           content.should.match new RegExp escapeStringRegexp "semantic = require(\"../lib/semantic\").Singleton()"
           content.should.match new RegExp escapeStringRegexp "{State} = require \"../lib/state\""
           content.should.match new RegExp escapeStringRegexp "module.exports = (robot) ->"
-          content.should.match new RegExp escapeStringRegexp "states = new State robot"
+          content.should.match new RegExp escapeStringRegexp "room: new RoomState robot, "
           content.should.match /abc/
           content.should.match /xyz/
           name.should.match /^scripts\/.+\.coffee$/
         done()
       @robot.emit "prepair_to_evolution",
         send: ->
-      , @robot.brain.data.ria_room_states.roomid
+      , @robot.brain.data.ria_room_states_command_parser.roomid
 
   context "parser", =>
     beforeEach (done) =>
       to "bắt đầu học nào"
-      @state = @robot.brain.data.ria_room_states.roomid = {}
+      @state = @robot.brain.data.ria_room_states_command_parser.roomid = {}
       setTimeout =>
         done()
       , 20
 
     it "swallow start token", (done) =>
-      @robot.emit "room_state_handler_message_learn",
+      @robot.emit "ria_room_states_command_parser_message_learn",
         message: text: "nếu"
       , @state
       setTimeout =>
@@ -233,7 +241,7 @@ describe "Parse command", ->
 
     it "swallow subject token", (done) =>
       @state.data = conditions: [], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_subject",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_subject",
         message: text: "anh nói"
       , @state
       setTimeout =>
@@ -244,7 +252,7 @@ describe "Parse command", ->
 
     it "swallow object token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_input",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_input",
         message: text: "/haha/i"
       , @state
       setTimeout =>
@@ -255,7 +263,7 @@ describe "Parse command", ->
 
     it "swallow object token 2", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói"], ops: []
-      @robot.emit "room_state_handler_sticker_learn_wait_for_condition_input",
+      @robot.emit "ria_room_states_command_parser_sticker_learn_wait_for_condition_input",
         message: fields: stickerID: "123"
       , @state
       setTimeout =>
@@ -266,7 +274,7 @@ describe "Parse command", ->
 
     it "swallow or token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_or_action",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_or_action",
         message: text: "hoặc"
       , @state
       setTimeout =>
@@ -277,7 +285,7 @@ describe "Parse command", ->
 
     it "swallow then token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_or_action",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_or_action",
         message: text: "sau đó"
       , @state
       setTimeout =>
@@ -288,7 +296,7 @@ describe "Parse command", ->
 
     it "swallow do token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_or_action",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_or_action",
         message: text: "thì"
       , @state
       setTimeout =>
@@ -299,7 +307,7 @@ describe "Parse command", ->
 
     it "parse condition statement", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: ["or"]
-      @robot.emit "room_state_handler_message_learn_wait_for_condition_statement",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_statement",
         message: text: "bảo"
       , @state
       setTimeout =>
@@ -310,7 +318,7 @@ describe "Parse command", ->
 
     it "swallow eval token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_action_statement",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_action_statement",
         message: text: "chạy đoạn mã này"
       , @state
       setTimeout =>
@@ -321,7 +329,7 @@ describe "Parse command", ->
 
     it "swallow respond token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_action_statement",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_action_statement",
         message: text: "trả lời"
       , @state
       setTimeout =>
@@ -332,7 +340,7 @@ describe "Parse command", ->
 
     it "swallow spam sticker token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_action_statement",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_action_statement",
         message: text: "spam sticker "
       , @state
       setTimeout =>
@@ -343,7 +351,7 @@ describe "Parse command", ->
 
     it "swallow show emotion token", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_action_statement",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_action_statement",
         message: text: "thể hiện cảm xúc này"
       , @state
       setTimeout =>
@@ -353,7 +361,7 @@ describe "Parse command", ->
       , 20
 
     it "parse full statement", (done) =>
-      @robot.emit "room_state_handler_message_learn",
+      @robot.emit "ria_room_states_command_parser_message_learn",
         message: text: "nếu anh nói /haha/ thì em nói"
       , @state
       setTimeout =>
@@ -363,7 +371,7 @@ describe "Parse command", ->
       , 20
 
     it "parse more complex statement", (done) =>
-      @robot.emit "room_state_handler_message_learn",
+      @robot.emit "ria_room_states_command_parser_message_learn",
         message: text: "nếu anh nói /haha/ hoặc nói /hihi/b rồi bảo /hehe/ hoặc ai đó nhắc đến /keke/a rồi foo nói /hô hô/i thì"
       , @state
       setTimeout =>
@@ -380,7 +388,7 @@ describe "Parse command", ->
 
     it "parse eval code", (done) =>
       @state.data = conditions: [subject: "anh", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_eval_code",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_eval_code",
         random: (array) -> array[0]
         message:
           text: "puts hello world"
@@ -393,7 +401,7 @@ describe "Parse command", ->
 
     it "parse print message", (done) =>
       @state.data = conditions: [subject: "ai đó", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_message_learn_wait_for_print_message",
+      @robot.emit "ria_room_states_command_parser_message_learn_wait_for_print_message",
         random: (array) -> array[0]
         message: text: "hihi"
         send: =>
@@ -404,7 +412,7 @@ describe "Parse command", ->
 
     it "parse sticker message", (done) =>
       @state.data = conditions: [subject: "ai đó", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_sticker_learn_wait_for_sticker_message",
+      @robot.emit "ria_room_states_command_parser_sticker_learn_wait_for_sticker_message",
         random: (array) -> array[0]
         message: fields: stickerID: "12345"
         send: =>
@@ -415,7 +423,7 @@ describe "Parse command", ->
 
     it "parse sticker emo", (done) =>
       @state.data = conditions: [subject: "abc", verb: "nói", object: "/haha/i"], ops: []
-      @robot.emit "room_state_handler_sticker_learn_wait_for_sticker_emo",
+      @robot.emit "ria_room_states_command_parser_sticker_learn_wait_for_sticker_emo",
         random: (array) -> array[0]
         message: fields: stickerID: "144885159019084"
         send: =>

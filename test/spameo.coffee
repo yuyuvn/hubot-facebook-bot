@@ -36,11 +36,11 @@ describe "Spam sticker", ->
 
   it "change state to add", =>
     say "hubot spam mèo này"
-    @robot.brain.data.ria_room_states.roomid.state.should.equal "add"
+    @robot.brain.data.ria_room_states_spameo.roomid.state.should.equal "add"
 
   it "change state to remove", =>
     say "hubot dừng spam moè này"
-    @robot.brain.data.ria_room_states.roomid.state.should.equal "remove"
+    @robot.brain.data.ria_room_states_spameo.roomid.state.should.equal "remove"
 
   it "stop subscript sticker", =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
@@ -48,8 +48,8 @@ describe "Spam sticker", ->
     should.not.exist @robot.brain.data.stickers["1530358710538271"]
 
   it "start subscript sticker after command", (done) =>
-    @robot.brain.data.ria_room_states = roomid: state: "add"
-    @robot.emit "room_state_handler_sticker_add",
+    @robot.brain.data.ria_room_states_spameo = roomid: state: "add"
+    @robot.emit "ria_room_states_spameo_sticker_add",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
       send: =>
         should.exist @robot.brain.data.stickers["1530358710538271"]
@@ -57,8 +57,8 @@ describe "Spam sticker", ->
 
   it "stop subscript sticker after command", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
-    @robot.brain.data.ria_room_states = roomid: state: "remove"
-    @robot.emit "room_state_handler_sticker_remove",
+    @robot.brain.data.ria_room_states_spameo = roomid: state: "remove"
+    @robot.emit "ria_room_states_spameo_sticker_remove",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
       send: =>
         should.not.exist @robot.brain.data.stickers["1530358710538271"]
@@ -66,35 +66,35 @@ describe "Spam sticker", ->
 
   it "set state to chain", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
-    @robot.emit "room_state_handler_sticker_default",
+    @robot.emit "ria_room_states_spameo_sticker_default",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
     , no_spam: true
     setTimeout =>
-      @robot.brain.data.ria_room_states.roomid.should.have.property('state', 'chain')
-      @robot.brain.data.ria_room_states.roomid.should.have.property('id', '1530358710538271')
-      @robot.brain.data.ria_room_states.roomid.should.have.property('times', 1)
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('state', 'chain')
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('id', '1530358710538271')
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('times', 1)
       done()
     , 20
 
   it "count up chain", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
-    @robot.emit "room_state_handler_sticker_default",
+    @robot.emit "ria_room_states_spameo_sticker_default",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
     , no_spam: true, times: 3
     setTimeout =>
-      @robot.brain.data.ria_room_states.roomid.should.have.property('state', 'chain')
-      @robot.brain.data.ria_room_states.roomid.should.have.property('id', '1530358710538271')
-      @robot.brain.data.ria_room_states.roomid.should.have.property('times', 4)
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('state', 'chain')
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('id', '1530358710538271')
+      @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('times', 4)
       done()
     , 20
 
   it "doesn't spam if spammed", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
-    @robot.emit "room_state_handler_sticker_spam",
+    @robot.emit "ria_room_states_spameo_sticker_spam",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
     , id: "1530358710538271"
     test = true
-    @robot.on "room_state_handler_sticker_default", ->
+    @robot.on "ria_room_states_spameo_sticker_default", ->
       test = false
     setTimeout =>
       test.should.equal true
@@ -111,14 +111,14 @@ describe "Spam sticker", ->
       sendSticker: -> done()
 
   it "trigger correct event for message", (done) =>
-    @robot.brain.data.ria_room_states = roomid: state: "test"
-    @robot.on "room_state_handler_message_test", ->
+    @robot.brain.data.ria_room_states_spameo = roomid: state: "test"
+    @robot.on "ria_room_states_spameo_message_test", ->
       done()
     say "something"
 
   it "trigger correct event for sticker", (done) =>
-    @robot.brain.data.ria_room_states = roomid: state: "test"
-    @robot.on "room_state_handler_sticker_test", ->
+    @robot.brain.data.ria_room_states_spameo = roomid: state: "test"
+    @robot.on "ria_room_states_spameo_sticker_test", ->
       done()
     sendSticker "1530358710538271"
 
@@ -131,10 +131,10 @@ describe "Spam sticker", ->
         done()
 
   it "reset state", (done) =>
-    @robot.brain.data.ria_room_states = roomid: state: "test"
-    @robot.emit "reset_state",
+    @robot.brain.data.ria_room_states_spameo = roomid: state: "test"
+    @robot.emit "reset_state_spameo",
       message: room: "roomid"
     setTimeout =>
-      should(@robot.brain.data.ria_room_states.roomid).equalOneOf null, undefined
+      should(@robot.brain.data.ria_room_states_spameo.roomid).equalOneOf null, undefined
       done()
     , 20

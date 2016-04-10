@@ -13,11 +13,16 @@
 crc = require "crc"
 emo = require("../lib/emotion").Singleton()
 semantic = require("../lib/semantic").Singleton()
-{State} = require "../lib/state"
+{RoomState, CachedData} = require "../lib/state"
 
 module.exports = (robot) ->
-  states = new State robot
+  states =
+    room: new RoomState robot, "command_parser"
+    code: new CachedData robot, "ria_code_states"
   regex = {}
+
+  robot.on "reset_state_cp", (msg) ->
+    states.room.remove msg
 
   robot.respond new RegExp("#{semantic.regex("#start_lesson")}", "i"), (msg) ->
     regex.start = new RegExp "^(?:#{robot.alias}|#{robot.name})?\\s*#{semantic.regex(":when")}([^]*)$", "i"
@@ -27,7 +32,7 @@ module.exports = (robot) ->
     regex.condition_statement = new RegExp "^(?:#{robot.alias}|#{robot.name})?\\s*(?:(#{semantic.regex(":subject")}|[^\\s]+)\\s+)?(#{semantic.regex(":said")})([^]*)$", "i"
     regex.action_statement = new RegExp "^(?:#{robot.alias}|#{robot.name})?\\s*#{semantic.regex(":you ")}?(#{semantic.regex("#eval")}|#{semantic.regex(":respond")}|#{semantic.regex("#spam")}|#{semantic.regex("#show")})([^]*)$", "i"
 
-    states.room.set state: "learn", msg.message.room
+    states.room.set msg, state: "learn"
     robot.emit "facebook.sendSticker", message: msg, sticker: "144885145685752"
 
   robot.on "finish_learning", (msg, state) ->
@@ -38,34 +43,34 @@ module.exports = (robot) ->
   emit_or_wait = (type, msg, state, offset=2) ->
     if msg.match[offset]
       msg.message.text = msg.match[offset]
-      robot.emit "room_state_handler_message_#{type}", msg, state
+      robot.emit "ria_room_states_command_parser_message_#{type}", msg, state
     else
       state.state = type
 
-  robot.on "room_state_handler_message_learn", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn", (msg, state) ->
     return robot.emit "finish_learning", msg, state unless msg.match = msg.message.text.match regex.start
     state.data = conditions: [], ops: []
     emit_or_wait "learn_wait_for_subject", msg, state, 1
 
-  robot.on "room_state_handler_message_learn_wait_for_subject", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_subject", (msg, state) ->
     return robot.emit "finish_learning", msg, state unless msg.match = msg.message.text.match regex.subject
     condition = subject: msg.match[1], verb: msg.match[2]
     state.data.conditions.push condition
     emit_or_wait "learn_wait_for_condition_input", msg, state, 3
 
-  robot.on "room_state_handler_message_learn_wait_for_condition_input", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_condition_input", (msg, state) ->
     return robot.emit "finish_learning", msg, state unless msg.match = msg.message.text.match regex.condition_input
     condition = state.data.conditions.pop()
     condition.object = msg.match[1]
     state.data.conditions.push condition
     emit_or_wait "learn_wait_for_condition_or_action", msg, state
 
-  robot.on "room_state_handler_sticker_learn_wait_for_condition_input", (msg, state) ->
+  robot.on "ria_room_states_command_parser_sticker_learn_wait_for_condition_input", (msg, state) ->
     stickerID = msg.message.fields.stickerID
     msg.message.text = "/#{stickerID}/"
-    robot.emit "room_state_handler_message_learn_wait_for_condition_input", msg, state
+    robot.emit "ria_room_states_command_parser_message_learn_wait_for_condition_input", msg, state
 
-  robot.on "room_state_handler_message_learn_wait_for_condition_or_action", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_condition_or_action", (msg, state) ->
     return robot.emit "finish_learning", msg, state unless msg.match = msg.message.text.match regex.condition_or_action
     action = msg.match[1]
     if action in semantic.say ":do"
@@ -74,14 +79,14 @@ module.exports = (robot) ->
       state.data.ops.push if action in semantic.say ":or" then "or" else "then"
       emit_or_wait "learn_wait_for_condition_statement", msg, state
 
-  robot.on "room_state_handler_message_learn_wait_for_condition_statement", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_condition_statement", (msg, state) ->
     return robot.emit "finish_learning", msg, state unless msg.match = msg.message.text.match regex.condition_statement
     condition = verb: msg.match[2]
     condition.subject = msg.match[1] if msg.match[1]
     state.data.conditions.push condition
     emit_or_wait "learn_wait_for_condition_input", msg, state, 3
 
-  robot.on "room_state_handler_message_learn_wait_for_action_statement", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_action_statement", (msg, state) ->
     unless msg.match = msg.message.text.match regex.action_statement
       msg.send msg.random semantic.say "#what ạ?", "#subject": msg.message.text
       return
@@ -102,36 +107,37 @@ module.exports = (robot) ->
     code += "emo = require(\"../lib/emotion\").Singleton()\nsemantic = require(\"../lib/semantic\").Singleton()\n{State} = require \"../lib/state\"\n"
     code += state.hook_root if state.hook_root?
     code += "\nmodule.exports = (robot) ->\n"
-    code += "  states = new State robot\n"
+    code += "  states =\n"
+    code += "    room: new RoomState robot, \"#{state.name}\""
     code += state.code
 
-    file_name = "scripts/ria_#{new Date().getTime()}.coffee"
+    file_name = "scripts/ria_#{state.name}.coffee"
     queue = states.code.get()
     queue.files = {} unless queue.files?
     queue.files[file_name] = content: code
     states.code.set queue
     robot.emit "prepair_to_evolution_add_hutbot_scripts", msg, [file_name], ->
       robot.emit "run_evolution", msg
-    robot.emit "reset_state", msg
+    robot.emit "reset_state_cp", msg
 
-  robot.on "room_state_handler_message_learn_wait_for_finish_confirm", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_finish_confirm", (msg, state) ->
     if msg.message.text.match robot.respondPattern new RegExp "#{semantic.regex(":yes")}"
       if state.data?
         robot.emit "prepair_to_evolution", msg, state
       else
-        robot.emit "reset_state", msg
+        robot.emit "reset_state_cp", msg
         msg.send "Nhưng em đã học được gì đâu :'("
     else
       state.state = state.old_state
       msg.send "Yay! Học tiếp :3"
 
-  robot.on "room_state_handler_sticker_learn_wait_for_finish_confirm", (msg, state) ->
+  robot.on "ria_room_states_command_parser_sticker_learn_wait_for_finish_confirm", (msg, state) ->
     stickerID = msg.message.fields.stickerID
     if stickerID in emo.get "yes"
       if state.data?
         robot.emit "prepair_to_evolution", msg, state
       else
-        robot.emit "reset_state", msg
+        robot.emit "reset_state_cp", msg
         msg.send "Nhưng em đã học được gì đâu :'("
     else
       state.state = state.old_state
@@ -151,19 +157,19 @@ module.exports = (robot) ->
         "#{fallback.object} unless msg.message.field?.stickerID? and msg.match = msg.message.match #{condition.object}"
     condition_codes.join "\n"
 
-  robot.on "room_state_handler_message_learn_wait_for_print_message", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_print_message", (msg, state) ->
     matches = msg.message.text.match robot.respondPattern /([^]+)/
     text = if matches? then matches[1] else msg.message.text
     action = "msg.send '#{text.replace("'","\\'")}'"
     msg.message.text = action
-    robot.emit "room_state_handler_message_learn_wait_for_eval_code", msg, state
+    robot.emit "ria_room_states_command_parser_message_learn_wait_for_eval_code", msg, state
 
-  robot.on "room_state_handler_sticker_learn_wait_for_sticker_message", (msg, state) ->
+  robot.on "ria_room_states_command_parser_sticker_learn_wait_for_sticker_message", (msg, state) ->
     action = "robot.emit \"facebook.sendSticker\", message: msg, sticker: \"#{msg.message.fields.stickerID}\""
     msg.message.text = action
-    robot.emit "room_state_handler_message_learn_wait_for_eval_code", msg, state
+    robot.emit "ria_room_states_command_parser_message_learn_wait_for_eval_code", msg, state
 
-  robot.on "room_state_handler_sticker_learn_wait_for_sticker_emo", (msg, state) ->
+  robot.on "ria_room_states_command_parser_sticker_learn_wait_for_sticker_emo", (msg, state) ->
     stickerID = msg.message.fields.stickerID
     emotion = null
     for key, value of emo.data
@@ -173,21 +179,21 @@ module.exports = (robot) ->
     if emotion?
       action = "robot.emit \"facebook.sendSticker\", message: msg, sticker: msg.random emo.get(\"#{emotion}\")"
       msg.message.text = action
-      robot.emit "room_state_handler_message_learn_wait_for_eval_code", msg, state
+      robot.emit "ria_room_states_command_parser_message_learn_wait_for_eval_code", msg, state
     else
       msg.send msg.random semantic.say "Em #dont_know", "#clause": semantic.say "#what_emo", "#subject": "đây"
 
-  robot.on "room_state_handler_message_learn_wait_for_eval_code", (msg, state) ->
+  robot.on "ria_room_states_command_parser_message_learn_wait_for_eval_code", (msg, state) ->
     matches = msg.message.text.match robot.respondPattern /([^]+)/
     msg.message.text = if matches? then matches[1] else msg.message.text
     data = state.data
     conditions = data.conditions
     ops = data.ops
     ops.push "do"
-    scope = {}
+    state.name = "#{(new Date).getTime()}_#{crc.crc32(Math.random().toString()).toString(16)}"
+    scope = {stateID: "default"}
     current_scope = scope
     current_scope.conditions = [conditions.shift()]
-    do_event = "#{(new Date).getTime()}_#{crc.crc32(Math.random().toString()).toString(16)}"
     for op in ops
       switch op
         when "or"
@@ -195,12 +201,12 @@ module.exports = (robot) ->
         when "then"
           regex = "#{current_scope.conditions[0].object}_#{Math.floor((Math.random()*1000))}"
           stateID = "#{(new Date).getTime()}_#{crc.crc32(Math.random().toString()).toString(16)}"
-          current_scope.action = "states.room.set state: \"#{stateID}\", msg.message.room"
+          current_scope.action = "states.room.set msg, state: \"#{stateID}\""
           current_scope.child_scope= {stateID: stateID}
           current_scope = current_scope.child_scope
           current_scope.conditions = [conditions.shift()]
         when "do"
-          current_scope.action = "robot.emit \"ria_code_#{do_event}\", msg"
+          current_scope.action = "robot.emit \"ria_code_#{state.name}\", msg"
 
     action = msg.message.text
     action = action.replace /.+/g, (code_string) ->
@@ -208,37 +214,23 @@ module.exports = (robot) ->
 
     current_scope = scope
     state.code = "" unless state.code?
-    state.code += "\n  robot.on \"ria_code_#{do_event}\", (msg) ->\n#{action}\n"
+    state.code += "\n  robot.on \"ria_code_#{state.name}\", (msg) ->\n#{action}\n"
     subject = semantic.say(":anyone")[0]
     while current_scope?
       action = current_scope.action.replace /.+/g, (code_string) ->
         if code_string != "" then "    #{code_string}" else ""
-      if current_scope.stateID
-        return_code = "    return robot.emit \"room_state_handler_message_default\""
-        for condition in current_scope.conditions
-          if condition.subject?
-            subject = condition.subject
-          else
-            condition.subject = subject
-          condition.subject = msg.message.user.id if condition.subject in semantic.say ":I"
-          condition_codes = parse_condition condition, subject: "    return", object: return_code
-          state.code += "\n  robot.on \"room_state_handler_message_#{current_scope.stateID}\", (msg, state) ->\n#{condition_codes}\n#{action}\n"
-      else
-        # Can we calculor outersect of regex?
-        for condition in current_scope.conditions
-          if condition.subject?
-            subject = condition.subject
-          else
-            condition.subject = subject
-          condition.subject = msg.message.user.id if condition.subject in semantic.say ":I"
-          condition_codes = parse_condition condition, subject: "    return"
-          condition_codes += "\n" if condition_codes
-          state.code += if condition.verb in semantic.say ":told"
-            "\n  robot.respond #{condition.object}, (msg) ->\n#{condition_codes}#{action}\n"
-          else if condition.verb in semantic.say ":speaked"
-            "\n  robot.hear #{condition.object}, (msg) ->\n#{condition_codes}#{action}\n"
-          else
-            "\n  robot.respondSticker #{condition.object}, (msg) ->\n#{condition_codes}#{action}\n"
+      return_code = "    return states.room.remove()"
+      for condition in current_scope.conditions
+        if condition.subject?
+          subject = condition.subject
+        else
+          condition.subject = subject
+        condition.subject = msg.message.user.id if condition.subject in semantic.say ":I"
+        condition_codes = parse_condition condition, subject: "    return", object: return_code
+        state.code += if condition.verb in semantic.say "#spam"
+          "\n  robot.on \"ria_room_states_#{state.name}_sticker_#{current_scope.stateID}\", (msg, state) ->\n#{condition_codes}\n#{action}\n"
+        else
+          "\n  robot.on \"ria_room_states_#{state.name}_message_#{current_scope.stateID}\", (msg, state) ->\n#{condition_codes}\n#{action}\n"
       current_scope = current_scope.child_scope
     state.data = conditions: [], ops: []
     state.state = "learn"
