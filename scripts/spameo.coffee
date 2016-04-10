@@ -19,21 +19,22 @@ module.exports = (robot) ->
     room: new RoomState robot, "spameo"
     stickers: new Stickers robot
 
+  robot.on "facebook.sendSticker", (event) ->
+    states.room.set event.message, state: "spam", id: event.sticker
+
   robot.on "reset_state_spameo", (msg) ->
     states.room.remove msg
 
   robot.on "send_random_sticker", (msg) ->
     sticker_ids = states.stickers.subscribing()
     if sticker_ids.length < 1
-      robot.emit "reset_state_spameo", msg if states.room.get()?
-
-    sticker_id = msg.random sticker_ids
-    states.room.set msg, state: "spam", id: sticker_id
-    robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
+      robot.emit "reset_state_spameo", msg if states.room.get(msg)?
+    else
+      sticker_id = msg.random sticker_ids
+      robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
 
   robot.respond new RegExp("spam #{semantic.regex(":sticker")} ([0-9]+)", "i"), (msg) ->
     robot.emit "facebook.sendSticker", message: msg, sticker: msg.match[1]
-    robot.emit "reset_state_spameo", msg
 
   robot.respond new RegExp("#{semantic.regex(":stop")} spam(.*)", "i"), (msg) ->
     match = msg.match[1].match new RegExp "^\\s#{semantic.regex(":sticker")} này", "i"
@@ -42,7 +43,6 @@ module.exports = (robot) ->
     else
       sticker = if states.stickers.unsubscribe_all() then msg.random(emo.get("sad")) else msg.random(emo.get("cry"))
       robot.emit "facebook.sendSticker", message: msg, sticker: sticker
-      robot.emit "reset_state_spameo", msg
 
   robot.respond new RegExp("spam #{semantic.regex(":sticker")} này", "i"), (msg) ->
     states.room.set msg, state: "add"
@@ -61,7 +61,6 @@ module.exports = (robot) ->
       rand = Math.random()*100
       if rand <= rate
         robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
-        states.room.set msg, state: "spam", id: sticker_id
         spammed = true
       else if rand <= (rate+20)
         robot.emit "send_random_sticker", msg

@@ -206,11 +206,12 @@ describe "Parse command", ->
 
     it "prepair code", (done) =>
       @robot.brain.data.ria_room_states_command_parser.roomid.hook_root = "xyz"
+      @robot.brain.data.ria_room_states_command_parser.roomid.name = "foobar"
       @robot.on "reset_state_cp", =>
         for name, content of @robot.brain.data.ria_code_states.files
           content.should.match new RegExp escapeStringRegexp "emo = require(\"../lib/emotion\").Singleton()"
           content.should.match new RegExp escapeStringRegexp "semantic = require(\"../lib/semantic\").Singleton()"
-          content.should.match new RegExp escapeStringRegexp "{State} = require \"../lib/state\""
+          content.should.match new RegExp escapeStringRegexp "{RoomState} = require \"../lib/state\""
           content.should.match new RegExp escapeStringRegexp "module.exports = (robot) ->"
           content.should.match new RegExp escapeStringRegexp "room: new RoomState robot, "
           content.should.match /abc/
