@@ -65,13 +65,13 @@ module.exports = (robot) ->
       return robot.emit "room_state_handler_message_default", msg, state
     spammed = false
     unless state?.no_spam
-      rate = state.rate || 40
+      rate = state.rate || 20
       rand = Math.random()*100
       if rand <= rate
         robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
         states.room.set state: "spam", id: sticker_id, msg.message.room
         spammed = true
-      else if rand <= (rate*1.25)
+      else if rand <= (rate+20)
         robot.emit "send_random_sticker", msg
         spammed = true
     unless spammed
