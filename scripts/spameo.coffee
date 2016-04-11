@@ -55,19 +55,21 @@ module.exports = (robot) ->
     sticker_id = msg.message.fields.stickerID
     unless states.stickers.subscribing sticker_id
       return robot.emit "ria_room_states_spameo_message_default", msg
-    spammed = false
-    unless state?.no_spam
-      rate = state.rate || 20
-      rand = Math.random()*100
-      if rand <= rate
-        robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
-        spammed = true
-      else if rand <= (rate+20)
-        robot.emit "send_random_sticker", msg
-        spammed = true
-    unless spammed
-      times = (state?.times || 0) + 1
-      states.room.set msg, state: "chain", id: sticker_id, times: times
+    setTimeout =>
+      spammed = state?.state == "spam" and state?.id == sticker_id
+      unless spammed
+        rate = state.rate || 20
+        rand = Math.random()*100
+        if rand <= rate
+          robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
+          spammed = true
+        else if rand <= (rate+20)
+          robot.emit "send_random_sticker", msg
+          spammed = true
+      unless spammed
+        times = (state?.times || 0) + 1
+        states.room.set msg, state: "chain", id: sticker_id, times: times
+    , 20
 
   robot.on "ria_room_states_spameo_sticker_add", (msg, state) ->
     sticker_id = msg.message.fields.stickerID
@@ -89,18 +91,20 @@ module.exports = (robot) ->
 
   robot.on "ria_room_states_spameo_sticker_spam", (msg, state) ->
     sticker_id = msg.message.fields.stickerID
-    spammed = sticker_id is state.id
-    robot.emit "ria_room_states_spameo_sticker_default", msg, state unless spammed
+    robot.emit "ria_room_states_spameo_sticker_default", msg, state unless sticker_id is state.id
 
   robot.on "ria_room_states_spameo_sticker_chain", (msg, state) ->
     sticker_id = msg.message.fields.stickerID
-    state.rate = 0 if state.rate?
+    state.rate = 0 unless state.rate?
     state.rate += 10*state.times if sticker_id is state.id
     robot.emit "ria_room_states_spameo_sticker_default", msg, state
 
   robot.on "ria_room_states_spameo_message_default", (msg, state) ->
-    rand = Math.random()*100
-    if rand <= 5
-      robot.emit "send_random_sticker", msg
-    else if states.room.get(msg)?
-      robot.emit "reset_state_spameo", msg
+    setTimeout =>
+      return if state?.state == "spam"
+      rand = Math.random()*100
+      if rand <= 5
+        robot.emit "send_random_sticker", msg
+      else if states.room.get(msg)?
+        robot.emit "reset_state_spameo", msg
+    , 20
