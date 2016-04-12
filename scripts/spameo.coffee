@@ -54,11 +54,11 @@ module.exports = (robot) ->
   robot.on "ria_room_states_spameo_sticker_default", (msg, state) ->
     sticker_id = msg.message.fields.stickerID
     unless states.stickers.subscribing sticker_id
-      return robot.emit "ria_room_states_spameo_message_default", msg
+      return robot.emit "ria_room_states_spameo_message_default", msg, state
     setTimeout =>
       spammed = state?.state == "spam" and state?.id == sticker_id
       unless spammed
-        rate = state.rate || 20
+        rate = if state.rate? then state.rate else 20
         rand = Math.random()*100
         if rand <= rate
           robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id

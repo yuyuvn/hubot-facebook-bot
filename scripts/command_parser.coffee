@@ -150,7 +150,7 @@ module.exports = (robot) ->
     condition_codes = []
     if fallback.subject? and condition.subject? and condition.subject not in semantic.say ":anyone"
       subject = condition.subject.replace "'", "\\'"
-      condition_codes.push "#{fallback.subject} unless '#{subject}' == msg.message.user.id"
+      condition_codes.push "#{fallback.subject} unless '#{subject}' == msg.message.user.id or '#{subject}' == msg.message.user.name"
     if fallback.object?
       condition_codes.push if condition.verb in semantic.say ":told"
         "#{fallback.object} unless msg.match = msg.message.text.match robot.respondPattern #{condition.object}"
@@ -223,7 +223,7 @@ module.exports = (robot) ->
       return_code = "    return states.room.remove(msg)"
       for condition in current_scope.conditions
         if condition.subject?
-          subject = condition.subject
+          subject = condition.subject.replace "'", "\\'"
         else
           condition.subject = subject
         condition.subject = msg.message.user.id if condition.subject in semantic.say ":I"

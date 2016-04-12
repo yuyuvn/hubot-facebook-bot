@@ -66,7 +66,7 @@ class Stickers
 
   subscribing: (sticker_id) ->
     if sticker_id?
-      @data.get(sticker_id)
+      @data.get sticker_id
     else
       Object.keys @data.raw_data()
 

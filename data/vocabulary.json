@@ -29,5 +29,6 @@
   "emo": ["cảm xúc"],
   "remember": ["thuộc","nhớ"],
   "level": ["cấp", "phiên bản"],
-  "please_prefix": ["đi", "với", "đi mà", "đi mờ"]
+  "please_prefix": ["đi", "với", "đi mà", "đi mờ"],
+  "post": ["post", "post lên"]
 }

@@ -68,19 +68,19 @@ describe "Spam sticker", ->
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
     @robot.emit "ria_room_states_spameo_sticker_default",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
-    , no_spam: true
+    , rate: -21
     setTimeout =>
       @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('state', 'chain')
       @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('id', '1530358710538271')
       @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('times', 1)
       done()
-    , 20
+    , 40
 
   it "count up chain", (done) =>
     @robot.brain.data.stickers = "1530358710538271": "http://google.com"
     @robot.emit "ria_room_states_spameo_sticker_default",
       message: new StickerMessage @user, "http://abc.com", "messageID", stickerID: "1530358710538271"
-    , no_spam: true, times: 3
+    , rate: -21, times: 3
     setTimeout =>
       @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('state', 'chain')
       @robot.brain.data.ria_room_states_spameo.roomid.should.have.property('id', '1530358710538271')
