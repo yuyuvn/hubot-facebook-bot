@@ -20,6 +20,7 @@
     "fs-extra": "0.26.7",
     "github-profile-message": "^1.0.0",
     "githubot": "yuyuvn/githubot",
+    "googleapis": "^5.2.1",
     "hubot": "~2.13.2",
     "hubot-facebook": "yuyuvn/hubot-facebook",
     "hubot-heroku-keepalive": "1.0.2",
@@ -29,7 +30,8 @@
     "mocha": "~1.13.0",
     "orchestrate-brain": "0.0.5",
     "promisify-node": "~0.4.0",
-    "should": "~8.3.0"
+    "should": "~8.3.0",
+    "url-parse": "^1.1.1"
   },
   "engines": {
     "node": "5.8.x"
