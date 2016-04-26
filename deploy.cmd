@@ -108,9 +108,8 @@ IF EXIST "%DEPLOYMENT_TARGET%\package.json" (
 :: 4. Create Hubot file with a coffee extension
 copy /Y "%DEPLOYMENT_TARGET%\node_modules\hubot\bin\hubot" "%DEPLOYMENT_TARGET%\node_modules\hubot\bin\hubot.coffee"
 
-:: 5. Run test
-npm install mocha -g
-npm test
+:: 5. Create empty dotenv file
+type NUL > "%DEPLOYMENT_TARGET%\.env"
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :: Post deployment stub
