@@ -33,7 +33,7 @@ jwt = new google.auth.JWT process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
   new Buffer(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, 'base64').toString("ascii"),
   ['https://www.googleapis.com/auth/urlshortener'],
   null
-
+replied = []
 module.exports = (robot) ->
   robot.respond new RegExp("lên youtube live spam(?:\\s+(?:\"(.*)\"|(.*)))?", "i"), (msg) ->
     message = msg.match[1] || msg.match[2]
@@ -60,6 +60,7 @@ module.exports = (robot) ->
       return res.send "Error: ", err if err?
 
       message = robot.brain.data.youtube?.message || ""
+      replied = []
       if youtube?
         youtube.getBroadcastList -> res.send "OK"
       else
@@ -69,9 +70,10 @@ module.exports = (robot) ->
           res.send "OK"
           youtube.listen (err, item) =>
             robot.logger.debug err if err?
-            if message
+            if message and item.snippet.authorChannelId not in replied
               youtube.insert message, item.snippet.liveChatId, (err) ->
                 robot.logger.debug err if err?
+                replied.push item.snippet.authorChannelId
 
 class YoutubeChat
   getLiveChat: (broadcast_id, pageToken=null, cb) ->
