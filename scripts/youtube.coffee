@@ -28,13 +28,26 @@ params =
     'https://www.googleapis.com/auth/youtube.readonly']
 oauth2Client = new OAuth2 params.clientId, params.clientSecret, params.redirect
 youtube = null
+jwt = new google.auth.JWT process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+  null,
+  new Buffer(process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY, 'base64').toString("ascii"),
+  ['https://www.googleapis.com/auth/urlshortener'],
+  null
 
 module.exports = (robot) ->
   robot.respond new RegExp("lên youtube live spam(?:\\s+(?:\"(.*)\"|(.*)))?", "i"), (msg) ->
-    url = oauth2Client.generateAuthUrl scope: params.scope
     message = msg.match[1] || msg.match[2]
     robot.brain.data.youtube = message: message if message
-    msg.send "Anh vào link này đi ạ\n#{url}"
+    url = oauth2Client.generateAuthUrl scope: params.scope
+    jwt.authorize (err, data) ->
+      return msg.send "Lỗi rồi :'(\n#{err}" if err?
+
+      google.urlshortener({version: 'v1', auth: jwt}).url.insert resource: longUrl: url, (err, respond) ->
+        return msg.send "Lỗi rồi :'(\n#{err}" if err?
+
+        # Replace dot to underline because fb do not accept bot post link
+        url = respond.id.replace(".", "_").replace /https:\/\//, ""
+        msg.send "Anh vào link này đi ạ\n#{url}"
 
   robot.respond new RegExp("stream xong rồi", "i"), (msg) ->
     youtube.stop()

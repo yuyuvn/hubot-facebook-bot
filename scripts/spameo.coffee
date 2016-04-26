@@ -58,7 +58,7 @@ module.exports = (robot) ->
     setTimeout =>
       spammed = state?.state == "spam" and state?.id == sticker_id
       unless spammed
-        rate = if state.rate? then state.rate else 20
+        rate = if state?.rate? then state.rate else 20
         rand = Math.random()*100
         if rand <= rate
           robot.emit "facebook.sendSticker", message: msg, sticker: sticker_id
