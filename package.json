@@ -23,7 +23,7 @@
     "googleapis": "^5.2.1",
     "hubot": "~2.13.2",
     "hubot-facebook": "yuyuvn/hubot-facebook",
-    "hubot-heroku-keepalive": "1.0.2",
+    "hubot-heroku-keepalive": "yuyuvn/hubot-heroku-keepalive",
     "hubot-mock-adapter": "~1.0.0",
     "hubot-relay": "yuyuvn/hubot-relay",
     "iconv-lite": "0.4.13",
