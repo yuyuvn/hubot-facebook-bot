@@ -30,5 +30,7 @@
   "remember": ["thuộc","nhớ"],
   "level": ["cấp", "phiên bản"],
   "please_prefix": ["đi", "với", "đi mà", "đi mờ"],
+  "accept": ["chấp nhận", "đồng ý", "accept"],
+  "friend": ["bạn bè", "kết bạn", "friend"],
   "post": ["post", "post lên"]
 }

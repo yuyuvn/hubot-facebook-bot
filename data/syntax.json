@@ -17,7 +17,5 @@
   "dont_know": ["không biết #clause"],
   "clause": ["#simple"],
   "upgrade": ["nâng :level", "cải tiến", "lên :level", "lên :level mới", "thăng :level"],
-  "accept": ["chấp nhận", "đồng ý", "accept"],
-  "friend": ["bạn bè", "kết bạn", "friend"],
   "said": [":told", ":speaked", "#spam"]
 }

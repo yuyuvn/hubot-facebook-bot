@@ -38,7 +38,7 @@ module.exports = (robot) ->
 
   new CronJob "* * 7 * * *", accept
 
-  robot.respond /#{semantic.regex(":accept :friend")}/i, (msg) ->
+  robot.respond new RegExp("#{semantic.regex(":accept :friend")}", "i"), (msg) ->
     msg.send "vâng ạ"
     accept().then () ->
       msg.send "xong rồi ạ"
