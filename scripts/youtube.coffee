@@ -1,21 +1,14 @@
 # Description:
-#   Spam meo
-#
-# Dependencies:
-#
-# Configuration:
-#   YOUTUBE_CLIENT_ID
-#   YOUTUBE_CLIENT_SECRET
-#   YOUTUBE_REDIRECT # only host, do not include /hubot/...
-#   YOUTUBE_RATE # default is 1000
+#   youtube
 #
 # Commands:
 #
 # Author:
 #   clicia scarlet <yuyuvn@icloud.com>
 
+semantic = require("../lib/semantic").Singleton()
 module.exports = (robot) ->
-  robot.respond new RegExp("lên youtube live spam(?:\\s+(?:\"(.*)\"|(.*)))?", "i"), (msg) ->
+  robot.respond new RegExp("#{semantic.regex("lên youtube live :spam")}(?:\\s+(?:\"(.*)\"|(.*)))?", "i"), (msg) ->
     message = msg.match[1] || msg.match[2]
     robot.brain.data.youtube = message: message if message
     msg.send "ok rồi ạ"

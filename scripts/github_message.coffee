@@ -1,3 +1,15 @@
+# Description:
+#   Github message
+#
+# Dependencies:
+#
+# Configuration:
+#
+# Commands:
+#
+# Author:
+#   clicia scarlet <yuyuvn@icloud.com>
+
 CronJob = require("cron").CronJob
 semantic = require("../lib/semantic").Singleton()
 GithubLED = require("github-profile-message")

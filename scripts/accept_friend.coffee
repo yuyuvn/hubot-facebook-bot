@@ -1,6 +1,13 @@
+# Description:
+#   Accept facebook friend request
+#
+# Author:
+#   clicia scarlet <yuyuvn@icloud.com>
+
 CronJob = require("cron").CronJob
 Nightmare = require('nightmare')
 
+semantic = require("../lib/semantic").Singleton()
 module.exports = (robot) ->
   accept = () ->
     nightmare = Nightmare()
@@ -31,7 +38,7 @@ module.exports = (robot) ->
 
   new CronJob "* * 7 * * *", accept
 
-  robot.respond /accept friend/i, (msg) ->
+  robot.respond /#{semantic.regex(":accept :friend")}/i, (msg) ->
     msg.send "vâng ạ"
     accept().then () ->
       msg.send "xong rồi ạ"
