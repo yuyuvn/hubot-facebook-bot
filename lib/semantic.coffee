@@ -1,14 +1,10 @@
-path = require "path"
-promisify = require "promisify-node"
-fse = promisify require "fs-extra"
-appDir = require "app-root-path"
 escapeStringRegexp = require "escape-string-regexp"
 unique = require "array-unique"
 
 class Semantic
   load_data_sync: ->
-    @syntax_data = fse.readJsonSync appDir + "/data/syntax.json"
-    @vocabulary_data = fse.readJsonSync appDir + "/data/vocabulary.json"
+    @syntax_data = require "../data/syntax.json"
+    @vocabulary_data = require "../data/vocabulary.json"
 
   random: (items) ->
     items[ Math.floor(Math.random() * items.length) ]

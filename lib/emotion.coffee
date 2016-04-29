@@ -1,11 +1,6 @@
-path = require "path"
-promisify = require "promisify-node"
-fse = promisify require "fs-extra"
-appDir = require "app-root-path"
-
 class Emotion
   load_data_sync: ->
-    @data = fse.readJsonSync appDir + "/data/emo.json"
+    @data = require "../data/emo.json"
 
   get: (emotion) ->
     @load_data_sync() unless @data?
