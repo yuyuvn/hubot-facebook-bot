@@ -1,4 +1,3 @@
-path   = require "path"
 should = require "should"
 
 script = require "../scripts/command_parser.coffee"

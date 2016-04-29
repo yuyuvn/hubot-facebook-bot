@@ -1,4 +1,3 @@
-path   = require "path"
 should = require "should"
 
 {Semantic} = require "../lib/semantic"

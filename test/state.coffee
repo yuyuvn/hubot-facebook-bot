@@ -1,4 +1,3 @@
-path   = require "path"
 should = require "should"
 
 {CachedData, Stickers, RoomState, UserState} = require "../lib/state"
