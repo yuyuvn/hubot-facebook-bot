@@ -29,7 +29,7 @@ module.exports = (robot) ->
   emit_or_wait = (type, msg, state, offset=1) ->
     if msg.match[offset]
       msg.message.text = msg.match[offset]
-      robot.emit "ria_room_states_gpm_#{type}", msg, state
+      robot.emit "ria_room_states_gpm_message_#{type}", msg, state
     else
       states.room.set msg, type, "state"
 
