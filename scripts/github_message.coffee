@@ -10,7 +10,7 @@
 # Author:
 #   clicia scarlet <yuyuvn@icloud.com>
 
-CronJob = require("cron").CronJob
+CronJob = require("hubot-cronjob")
 semantic = require("../lib/semantic").Singleton()
 GithubLED = require("github-profile-message")
 gl = new GithubLED()
@@ -23,8 +23,7 @@ module.exports = (robot) ->
     message = robot.brain.data["github-profile-message"]
     gl.post message if message?
 
-  robot.brain.on "loaded", =>
-    job = new CronJob "* * * 1 * *", post
+  new CronJob "* * * 1 * *", null, post
 
   emit_or_wait = (type, msg, state, offset=1) ->
     if msg.match[offset]
