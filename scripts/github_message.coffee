@@ -23,7 +23,7 @@ module.exports = (robot) ->
     message = robot.brain.data["github-profile-message"]
     gl.post message if message?
 
-  new CronJob "* * * 1 * *", null, post
+  new CronJob "0 0 1 * *", null, post
 
   emit_or_wait = (type, msg, state, offset=1) ->
     if msg.match[offset]
