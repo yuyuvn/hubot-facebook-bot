@@ -108,3 +108,6 @@ module.exports = (robot) ->
       else if states.room.get(msg)?
         robot.emit "reset_state_spameo", msg
     , 20
+
+  robot.catchAll (msg) =>
+    msg.read()
