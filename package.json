@@ -14,7 +14,6 @@
     "dotenv": "2.0.0",
     "escape-string-regexp": "~1.0.5",
     "fs-extra": "0.30.0",
-    "github-profile-message": "^1.0.3",
     "githubot": "yuyuvn/githubot",
     "googleapis": "^5.2.1",
     "hubot": "~2.13.0",
