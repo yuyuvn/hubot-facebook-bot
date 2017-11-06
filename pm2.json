@@ -1,7 +1,7 @@
 {
   "name"             : "Ria",
   "script"           : "server.js",
-  "cron_restart"     : "0 5 * * *",
+  "cron_restart"     : "0 */4 * * *",
   "exec_mode"        : "fork",
   "env": {
     "NODE_ENV": "production"
