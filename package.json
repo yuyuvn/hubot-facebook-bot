@@ -9,27 +9,25 @@
   "description": "A bot that can't do anything",
   "dependencies": {
     "array-unique": "~0.2.1",
-    "coffee-script": "1.10.0",
+    "coffeescript": "^2.3.1",
     "crc": "^3.4.0",
     "dotenv": "2.0.0",
     "escape-string-regexp": "~1.0.5",
     "fs-extra": "0.30.0",
     "githubot": "yuyuvn/githubot",
     "googleapis": "^5.2.1",
-    "hubot": "~2.13.0",
+    "hubot": "^3.1.1",
     "hubot-cronjob": "^0.2.1",
     "hubot-facebook": "yuyuvn/hubot-facebook",
     "hubot-mock-adapter": "~1.0.0",
-    "hubot-redis-brain": "0.0.3",
+    "hubot-redis-brain": "1.0.0",
     "hubot-relay": "yuyuvn/hubot-relay",
     "hubot-state": "^1.0.0",
+    "github-profile-message": "^1.0.4",
     "promisify-node": "~0.4.0"
   },
   "devDependencies": {
     "mocha": "^2.4.5",
     "should": "~8.3.1"
-  },
-  "engines": {
-    "node": "5.8.x"
   }
 }

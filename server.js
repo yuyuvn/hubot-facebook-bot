@@ -1,3 +1,3 @@
-require('coffee-script/register');
+require('coffeescript/register');
 require('dotenv').config();
-module.exports = require('hubot/bin/hubot.coffee');
+module.exports = require('hubot/bin/hubot');
