@@ -23,7 +23,7 @@ module.exports = {
       ref  : 'origin/master',
       repo : 'git@github.com:yuyuvn/hubot-facebook-bot.git',
       path : '/home/ec2-user/production',
-      'post-deploy' : 'ln -s /home/ec2-user/.env /home/ec2-user/production/.env && npm install && pm2 reload ecosystem.config.js --env production'
+      'post-deploy' : 'mv /home/ec2-user/production/current/node_modules/hubot/bin/hubot /home/ec2-user/production/current/node_modules/hubot/bin/hubot.coffee && ln -s /home/ec2-user/.env /home/ec2-user/production/.env && npm install && pm2 reload ecosystem.config.js --env production'
     }
   }
 };
