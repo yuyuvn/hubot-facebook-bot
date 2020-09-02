@@ -15,7 +15,7 @@
     "escape-string-regexp": "~1.0.5",
     "fs-extra": "0.30.0",
     "githubot": "yuyuvn/githubot",
-    "googleapis": "^5.2.1",
+    "googleapis": "^39.1.0",
     "hubot": "~2.13.0",
     "hubot-cronjob": "^0.2.1",
     "hubot-facebook": "yuyuvn/hubot-facebook",
